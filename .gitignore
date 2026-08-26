@@ -1,0 +1,23 @@
+# Node & React
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Python & FastAPI
+backend/__pycache__/
+backend/venv/
+backend/.env
+*.pyc
+
+# C++ Binaries
+backend/engine/*.out
+backend/engine/*.exe
+backend/engine/*.o
+
+# Data Files (Ignore massive generated files, but keep a sample if you have one)
+*.json
+!sample_data/*.json
+
+# OS Files
+.DS_Store
+Thumbs.db
