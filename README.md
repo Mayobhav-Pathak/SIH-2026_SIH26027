@@ -25,8 +25,4 @@ The architecture is built for high-throughput data ingestion and real-time algor
 *   **Frontend UI:** React, Tailwind CSS, Lucide Icons
 *   **Deployment:** Docker (Containerized Microservices)
 
-## Quick Start
 
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/yourusername/IR-ABPS.git](https://github.com/yourusername/IR-ABPS.git)
