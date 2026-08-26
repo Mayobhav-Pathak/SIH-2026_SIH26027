@@ -1,0 +1,23 @@
+FROM python:3.10-slim
+
+# Install the C++ compiler (g++) and essential build tools
+RUN apt-get update && \
+    apt-get install -y g++ build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the backend source code
+COPY . .
+
+# Optional: If your C++ engine needs to be pre-compiled during the build step, uncomment the line below
+# RUN g++ -O3 -o engine/solver engine/solver.cpp
+
+EXPOSE 8000
+
+# Start the FastAPI server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

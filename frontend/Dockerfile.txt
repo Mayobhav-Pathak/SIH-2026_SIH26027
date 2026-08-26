@@ -1,0 +1,15 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package configurations and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of the React application
+COPY . .
+
+EXPOSE 5173
+
+# Start the Vite development server and expose it to the network
+CMD ["npm", "run", "dev", "--", "--host"]

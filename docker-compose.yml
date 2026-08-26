@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: ir-abps-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Syncs local code changes immediately to the container (Hot-Reload)
+      - ./backend:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    build: ./frontend
+    container_name: ir-abps-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      # Prevents local node_modules from overwriting the container's modules
+      - /app/node_modules 
+    depends_on:
+      - backend
+    environment:
+      # Ensures Vite hot-reloading works inside Docker environments
+      - CHOKIDAR_USEPOLLING=true
