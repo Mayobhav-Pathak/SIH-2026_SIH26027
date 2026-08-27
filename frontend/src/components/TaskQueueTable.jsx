@@ -1,12 +1,12 @@
 import React from 'react';
-import { Download, AlertCircle, CheckCircle2, CalendarDays, CheckSquare } from 'lucide-react';
+import { Download, AlertCircle, CheckCircle2, CalendarDays } from 'lucide-react';
 
 export default function TaskQueueTable({ tasks = [], isScheduled = false, fullSchedule = null, onMarkDone }) {
   
   const exportToCSV = () => {
     if (!tasks || tasks.length === 0) return;
     const headers = "Task ID,Department,Duration,Time Window\n";
-    const rows = tasks.map(t => `${t.id},${t.department},${t.duration_hrs}h,${t.allocated_window || 'Pending'}`).join("\n");
+    const rows = tasks.map(t => `${t.id},${t.department},${t.duration_hrs || t.duration || t.w}h,${t.time_window || 'Pending'}`).join("\n");
     const blob = new Blob([headers + rows], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -49,16 +49,13 @@ export default function TaskQueueTable({ tasks = [], isScheduled = false, fullSc
           </thead>
           <tbody className="divide-y divide-slate-700/50">
             {safeTasks.length > 0 ? safeTasks.map((task) => {
-              
-              // 1. Check if explicitly marked as completed
               const isCompleted = task.is_completed;
-              
-              // 2. Scan the entire 30-day schedule to find exactly which day it is on
               let scheduledDay = null;
+              
               if (fullSchedule && !isCompleted) {
                 for (const [dayIdx, dayTasks] of Object.entries(fullSchedule)) {
                   if (dayTasks.some(t => t.id === task.id)) {
-                    scheduledDay = parseInt(dayIdx) + 1; // +1 to make it human-readable (Day 1 instead of Day 0)
+                    scheduledDay = parseInt(dayIdx) + 1; 
                     break;
                   }
                 }
@@ -72,15 +69,15 @@ export default function TaskQueueTable({ tasks = [], isScheduled = false, fullSc
                     {task.id}
                   </td>
                   <td className="py-3">{task.department}</td>
-                  <td className="py-3">{task.duration_hrs}h</td>
+                  <td className="py-3">{task.duration_hrs || task.duration || task.w}h</td>
                   
                   {isScheduled ? (
                     <td className="py-3 font-mono text-emerald-300 bg-emerald-900/10 rounded px-2">
-                      {task.allocated_window || "N/A"}
+                      {/* FIX: Mapped exactly to the backend time_window variable */}
+                      {task.time_window || "N/A"}
                     </td>
                   ) : (
                     <>
-                      {/* Dynamic Status Column */}
                       <td className="py-3">
                         {isCompleted ? (
                           <span className="flex items-center text-slate-400 text-xs font-semibold">
@@ -96,8 +93,6 @@ export default function TaskQueueTable({ tasks = [], isScheduled = false, fullSc
                           </span>
                         )}
                       </td>
-                      
-                      {/* Mark Done Action Button */}
                       <td className="py-3 text-right">
                         {!isCompleted && (
                           <button 

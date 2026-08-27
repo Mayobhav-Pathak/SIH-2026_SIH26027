@@ -1,6 +1,7 @@
+# backend/Dockerfile
 FROM python:3.10-slim
 
-# Install the C++ compiler (g++) and essential build tools
+# Install the C++ compiler (g++)
 RUN apt-get update && \
     apt-get install -y g++ build-essential && \
     rm -rf /var/lib/apt/lists/*
@@ -11,11 +12,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the backend source code
+# Copy all source code
 COPY . .
 
-# Optional: If your C++ engine needs to be pre-compiled during the build step, uncomment the line below
-# RUN g++ -O3 -o engine/solver engine/solver.cpp
+# Compile directly to the global system bin directory during build
+RUN g++ -O3 -o /usr/local/bin/scheduler scheduler.cpp
+
+EXPOSE 8000
 
 EXPOSE 8000
 

@@ -1,128 +1,169 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
-import joblib
-import numpy as np
+from typing import List, Dict, Any
 import subprocess
 import os
 
-app = FastAPI(title="Indian Railways Block Planning Engine")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-model = joblib.load("railway_criticality_model.pkl")
+# Initialize FastAPI
+app = FastAPI(title="IR-ABPS Gateway")
 
-class MaintenanceTaskInput(BaseModel):
-    id: str
-    department: str
-    section_id: str
-    duration_hrs: int
-    defect_severity: int
-    days_overdue: int
-    traffic_density_gmt: float
-    asset_age_years: float
+# CORS Middleware to allow React to connect
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# NEW: Raw Train Schedule Input
-class TrainScheduleInput(BaseModel):
-    train_id: str
-    section_id: str
-    day_id: int
-    entry_hour: int # 0 to 24
-    exit_hour: int  # 0 to 24
-    is_freight: bool
-
-class BlockPlanningRequest(BaseModel):
-    timetable: List[TrainScheduleInput]
-    tasks: List[MaintenanceTaskInput]
-    safety_buffer_mins: int  # Dynamic UI Slider
+# Define the expected JSON payload from React
+class OptimizationRequest(BaseModel):
+    timetable: List[Dict[str, Any]]
+    tasks: List[Dict[str, Any]]
+    safety_buffer_mins: int = 60
 
 @app.post("/api/optimize-blocks")
-def optimize_block_schedule(payload: BlockPlanningRequest):
-    if not payload.tasks or not payload.timetable:
-        return {"status": "empty", "schedule": None}
-
-    # 1. Algorithmic Gap Finder with EXACT Time Mapping
-    section_day_map = {}
-    for train in payload.timetable:
-        section_day_map.setdefault((train.section_id, train.day_id), []).append(train)
-
-    corridors = []
-    corridor_meta = {}
-    c_idx = 0
-    for (sec, day), trains in section_day_map.items():
-        trains.sort(key=lambda x: x.entry_hour)
-        freight_density = sum(1 for t in trains if t.is_freight) / max(1, len(trains))
-        
-        prev_exit = 0
-        for tr in trains:
-            # Convert the raw hour gap into minutes
-            raw_gap_mins = (tr.entry_hour - prev_exit) * 60
-            safe_capacity_mins = raw_gap_mins - payload.safety_buffer_mins
-            
-            if safe_capacity_mins > 0:
-                corridors.append({"sec": sec, "c_idx": c_idx, "cap": safe_capacity_mins, "freight": freight_density})
-                corridor_meta[str(c_idx)] = {"day": day, "start": prev_exit, "end": tr.entry_hour, "safe_cap_mins": safe_capacity_mins}
-                c_idx += 1
-            prev_exit = max(prev_exit, tr.exit_hour)
-            
-        final_gap_mins = (24 - prev_exit) * 60
-        safe_capacity_mins = final_gap_mins - payload.safety_buffer_mins
-        if safe_capacity_mins > 0:
-            corridors.append({"sec": sec, "c_idx": c_idx, "cap": safe_capacity_mins, "freight": freight_density})
-            corridor_meta[str(c_idx)] = {"day": day, "start": prev_exit, "end": 24, "safe_cap_mins": safe_capacity_mins}
-            c_idx += 1
-
-    # 2. Machine Learning: Predict Criticality
-    feature_matrix = np.array([[t.defect_severity, t.days_overdue, t.traffic_density_gmt, t.asset_age_years] for t in payload.tasks])
-    predicted_criticalities = model.predict(feature_matrix)
-
-    enriched_tasks = []
-    for i, t in enumerate(payload.tasks):
-        enriched_tasks.append({
-            "id": t.id,
-            "section_id": t.section_id,
-            "department": t.department,
-            "duration_mins": t.duration_hrs * 60, # Scale weight to minutes for C++
-            "duration_hrs": t.duration_hrs,       # Keep original for frontend display
-            "priority_score": round(float(predicted_criticalities[i]) * (1 + (t.days_overdue * 0.2)), 2)
-        })
-
-    # 3. Prepare data for C++ Engine (Passing c_idx instead of day_id)
-    cpp_input = f"{len(corridors)} {len(enriched_tasks)}\n"
-    for c in corridors:
-        cpp_input += f"{c['sec']} {c['c_idx']} {c['cap']} {c['freight']}\n"
-    for t in enriched_tasks:
-        # Pass duration_mins as the knapsack weight
-        cpp_input += f"{t['duration_mins']} {t['priority_score']} {t['id']} {t['section_id']}\n"
-
-    # 4. Execute C++ Binary
-    executable = "./scheduler.exe" if os.name == 'nt' else "./scheduler"
+async def optimize_blocks(payload: OptimizationRequest):
     try:
-        process = subprocess.Popen([executable], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = process.communicate(input=cpp_input)
-    except FileNotFoundError:
-        return {"status": "error", "message": "C++ executable not found."}
-
-    # 5. Parse C++ Output and Inject Exact Windows
-    parsed_output = stdout.strip().split()
-    horizon_schedule = {str(i): [] for i in range(30)} 
-    
-    for item in parsed_output:
-        if ":" in item:
-            try:
-                tid, returned_c_idx = item.split(":")
-                task_data = next((t for t in enriched_tasks if t["id"] == tid), None)
+        input_data = payload.dict()
+        corridors = input_data.get("timetable", [])
+        tasks = input_data.get("tasks", [])
+        
+        # 1. Initialization and Fallbacks
+        task_lookup = {}
+        fallback_sec = "DEFAULT_SEC"
+        
+        # Map original tasks for quick lookup later
+        for t in tasks:
+            t_id = str(t.get("task_id", t.get("id", "")))
+            if t.get("section_id"):
+                fallback_sec = str(t.get("section_id"))
+            task_lookup[t_id] = t
+            
+        input_lines = [f"{len(corridors)} {len(tasks)}"]
+        
+        # --- THE CLOCK TRACKER ---
+        # We build a dictionary to track exactly how much time is left in every train gap
+        # so we can give React the exact start/end hours for the Gantt chart.
+        block_tracker = {}
+        
+        # 2. Map Corridors (Calculate true capacity from hours!)
+        for c in corridors:
+            raw_sec = c.get("section_id", c.get("section", fallback_sec))
+            sec_id = str(raw_sec).replace(" ", "_")
+            day_id = str(c.get("day_id", 0))
+            
+            entry_hr = int(c.get("entry_hour", 0))
+            exit_hr = int(c.get("exit_hour", 1))
+            cap = exit_hr - entry_hr
+            
+            # Failsafe for valid capacity
+            if cap <= 0: 
+                cap = 1
                 
-                # Link the task back to its exact physical time window
-                if task_data and returned_c_idx in corridor_meta:
-                    meta = corridor_meta[returned_c_idx]
-                    day_idx = str(meta["day"])
+            freight = 1.0 if c.get("is_freight") else 0.0
+            input_lines.append(f"{sec_id} {day_id} {cap} {freight}")
+            
+            # Register this gap in our Clock Tracker
+            if day_id not in block_tracker:
+                block_tracker[day_id] = {}
+            if sec_id not in block_tracker[day_id]:
+                block_tracker[day_id][sec_id] = []
+                
+            block_tracker[day_id][sec_id].append({
+                "rem": cap,
+                "current_start": entry_hr,
+                "window_label": f"{entry_hr:02d}:00 - {exit_hr:02d}:00"
+            })
+            
+        # 3. Safely map Tasks (Strip strings like "4h" into integers)
+        for t in tasks:
+            raw_dur = str(t.get("duration_hrs", t.get("duration", t.get("w", 1))))
+            dur_digits = ''.join(filter(str.isdigit, raw_dur))
+            w = int(dur_digits) if dur_digits else 1
+            
+            orig_v = float(t.get("orig_v", t.get("defect_severity", 1.0)))
+            t_id = str(t.get("task_id", t.get("id", "T1"))).replace(" ", "_")
+            sec_id = str(t.get("section_id", fallback_sec)).replace(" ", "_")
+            
+            input_lines.append(f"{w} {orig_v} {t_id} {sec_id}")
+            
+        cpp_input_text = "\n".join(input_lines)
+        
+        # 4. Execute C++ Engine
+        executable = "./scheduler.exe" if os.name == 'nt' else "/usr/local/bin/scheduler"
+        process = subprocess.Popen(
+            [executable],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        stdout, stderr = process.communicate(input=cpp_input_text)
+        
+        # 5. Parse Output, Inject Exact Hours, and Format for React
+        raw_output = stdout.strip()
+        parsed_schedule = {str(i): [] for i in range(32)}
+        
+        if raw_output:
+            for pair in raw_output.split():
+                if ":" in pair:
+                    raw_task_id, day_id = pair.split(":")
+                    clean_day_id = str(day_id)
                     
-                    # Store the exact time gap string inside the task data
-                    task_data["allocated_window"] = f"{meta['start']:02d}:00 - {meta['end']:02d}:00"
+                    if clean_day_id not in parsed_schedule:
+                        parsed_schedule[clean_day_id] = []
                     
-                    if day_idx in horizon_schedule:
-                        horizon_schedule[day_idx].append(task_data)
-            except ValueError:
-                continue
-
-    return {"status": "success", "horizon_schedule": horizon_schedule}
+                    # Find the original task object
+                    original_task = None
+                    for orig_id, orig_obj in task_lookup.items():
+                        if str(orig_id).replace(" ", "_") == raw_task_id:
+                            original_task = dict(orig_obj)
+                            break
+                    
+                    if original_task:
+                        original_task["day_id"] = clean_day_id
+                        
+                        # -- EXACT GANTT CHART INJECTION --
+                        t_sec = str(original_task.get("section_id", fallback_sec)).replace(" ", "_")
+                        
+                        raw_dur = str(original_task.get("duration_hrs", original_task.get("duration", 1)))
+                        dur_digits = ''.join(filter(str.isdigit, raw_dur))
+                        t_dur = int(dur_digits) if dur_digits else 1
+                        
+                        time_window = "N/A"
+                        
+                        # Find the gap it was assigned to, and calculate exact start/end hours
+                        if clean_day_id in block_tracker and t_sec in block_tracker[clean_day_id]:
+                            for block in block_tracker[clean_day_id][t_sec]:
+                                if block["rem"] >= t_dur:
+                                    # Calculate exact times
+                                    start_hr = block["current_start"]
+                                    end_hr = start_hr + t_dur
+                                    
+                                    # Inject properties for the frontend Gantt Chart
+                                    original_task["start_hour"] = start_hr
+                                    original_task["end_hour"] = end_hr
+                                    original_task["entry_hour"] = start_hr
+                                    original_task["exit_hour"] = end_hr
+                                    
+                                    time_window = block["window_label"]
+                                    
+                                    # Consume the capacity so the next task starts where this one ends
+                                    block["rem"] -= t_dur
+                                    block["current_start"] = end_hr
+                                    break
+                                    
+                        original_task["time_window"] = time_window
+                        
+                        parsed_schedule[clean_day_id].append(original_task)
+        
+        return {
+            "status": "success",
+            "horizon_schedule": parsed_schedule
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": f"Data Mapping Error: {str(e)}"}
