@@ -24,5 +24,18 @@ The architecture is built for high-throughput data ingestion and real-time algor
 *   **Backend API:** C++17, WebSockets
 *   **Frontend UI:** React, Vite, Tailwind CSS
 *   **Deployment:** Containerized via Docker with volume mounts ensuring strict dependency management and isolated cross-platform compilation of the C++ binaries.
+### Local Deployment (Docker)
+The architecture is containerized for zero-configuration deployment. Compiling the C++ engine from source is heavily optimized; even on standard development hardware like an IdeaPad i5, the build executes in seconds due to the lightweight 1D DP memory footprint.
+
+```bash
+# Clone the repository
+git clone [https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027](https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027)
+cd IR-ABPS-Dashboard
+
+# Build and launch the containerized backend and frontend
+docker-compose up --build
+
+# The quantitative dashboard will stream live at:
+# http://localhost:5173
 
 
