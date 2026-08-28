@@ -10,14 +10,14 @@ SECTIONS = [
 
 DEPARTMENTS = ["SMMS", "TDMS", "TMS"]
 
-def generate_tasks(start_id=1220, count=1500):
+def generate_tasks(start_id=1220, count=5000):
     tasks = []
     for i in range(count):
         task = {
             "id": f"TASK-{start_id + i}",
             "department": random.choice(DEPARTMENTS),
             "section_id": random.choice(SECTIONS),
-            "duration_hrs": random.randint(1, 5), # Bound between 1-5h to fit train gaps
+            "duration_hrs": random.randint(1, 3), # Bound between 1-3h to fit train gaps
             "defect_severity": random.randint(1, 5),
             "days_overdue": random.randint(0, 30),
             "traffic_density_gmt": round(random.uniform(20.0, 120.0), 1),
@@ -27,8 +27,8 @@ def generate_tasks(start_id=1220, count=1500):
     return tasks
 
 if __name__ == "__main__":
-    # Generating 1,500 new tasks starting exactly where your last batch ended
-    NUM_TASKS = 1500
+    # Generating 5,000 new tasks starting exactly where your last batch ended
+    NUM_TASKS = 5000
     START_ID = 1220 
     
     new_tasks = generate_tasks(start_id=START_ID, count=NUM_TASKS)

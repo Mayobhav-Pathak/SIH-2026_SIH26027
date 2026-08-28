@@ -8,6 +8,8 @@ import FileUpload from './components/FileUpload';
 import Login from './components/Login';
 import KPIScorecard from './components/KPIScorecard';
 import SettingsModal from './components/SettingsModal';
+import CapacityOrderBook from './components/CapacityOrderBook';
+import ExecutionTape from './components/ExecutionTape';
 
 const SECTIONS = [
     "DEL-CNB-SEC1", "MUM-PUN-SEC2", "HWH-KGP-SEC3", "MAS-SBC-SEC4", "NDLS-CDG-SEC5",
@@ -16,170 +18,128 @@ const SECTIONS = [
 ];
 
 export default function App() {
-  // Authentication & Dropdown State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Core Data State
   const [tasks, setTasks] = useState([]);
   const [timetable, setTimetable] = useState([]); 
   const [schedule, setSchedule] = useState(null);
-  
-  // UI Controls
   const [activeDay, setActiveDay] = useState("0");
   const [activeSection, setActiveSection] = useState(SECTIONS[0]);
   const [loading, setLoading] = useState(false);
   const [safetyBufferMins, setSafetyBufferMins] = useState(60); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [executionLogs, setExecutionLogs] = useState([]);
+
   const handleMasterReset = () => {
-    setTasks([]);
-    setTimetable([]);
-    setSchedule(null);
+    setTasks([]); setTimetable([]); setSchedule(null);
     setIsSettingsOpen(false);
   };
 
-  // API Execution
-  const handleRunOptimizer = async (overrideTasks = null) => {
-    // FIX: React passes a MouseEvent on normal button clicks. We must ensure this is actually an array.
-    const currentTasks = Array.isArray(overrideTasks) ? overrideTasks : tasks;
-    
-    if (currentTasks.length === 0 || timetable.length === 0) return alert("Please upload both Tasks and Timetable data.");
-    
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:8000/api/optimize-blocks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          timetable: timetable, 
-          tasks: currentTasks.filter(t => !t.is_completed), // Ignore completed tasks
-          safety_buffer_mins: safetyBufferMins 
-        })
-      });
-      const result = await response.json();
-      console.log("API PAYLOAD:", result);
-      if (result.status === "success") {
-        setSchedule(result.horizon_schedule);
-        setActiveDay("0"); 
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const handleStreamOptimizer = (tasksToUse = tasks) => {
+    const currentTasks = tasksToUse.filter(t => !t.is_completed);
+    if (currentTasks.length === 0 || timetable.length === 0) {
+      return alert("Please upload both Tasks and Timetable data.");
     }
+
+    setLoading(true);
+    const emptySchedule = {};
+    for (let i = 0; i <= 31; i++) emptySchedule[i.toString()] = [];
+    setSchedule(emptySchedule);
+
+    const ws = new WebSocket('ws://localhost:8000/ws/optimize-stream');
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        timetable: timetable,
+        tasks: currentTasks,
+        safety_buffer_mins: safetyBufferMins
+      }));
+    };
+
+    let liveSchedule = {};
+    for (let i = 0; i <= 31; i++) liveSchedule[i.toString()] = [];
+
+    ws.onmessage = (event) => {
+      const payload = JSON.parse(event.data);
+      if (payload.type === "progress") {
+        const enrichedTask = payload.task;
+        if (enrichedTask && enrichedTask.day_id) {
+          liveSchedule[enrichedTask.day_id].push(enrichedTask);
+          setSchedule({ ...liveSchedule });
+          setExecutionLogs(prev => [
+            ...prev,
+            {
+              timestamp: new Date().toLocaleTimeString(),
+              text: `TASK-${enrichedTask.task_id || enrichedTask.id} ALLOCATED TO DAY ${parseInt(enrichedTask.day_id) + 1} (SEV: ${enrichedTask.defect_severity || 'N/A'})`,
+              tag: 'OPTIMIZED'
+            }
+          ]);
+        }
+      } else if (payload.type === "complete") {
+        setLoading(false);
+        setActiveDay("0"); 
+        ws.close();
+      }
+    };
+
+    ws.onerror = (err) => { console.error("WebSocket error:", err); setLoading(false); };
   };
 
-  // Emergency Injection
   const injectEmergencyTask = () => {
     const emergencyTask = {
-      id: `EMERGENCY-${Math.floor(Math.random() * 1000)}`,
-      department: "TMS",
-      section_id: activeSection,
-      duration_hrs: 2,
-      defect_severity: 10, 
-      days_overdue: 0,
-      traffic_density_gmt: 100.0,
-      asset_age_years: 15.0,
-      is_completed: false
+      id: `EMERGENCY-${Math.floor(Math.random() * 1000)}`, department: "TMS", section_id: activeSection,
+      duration_hrs: 2, defect_severity: 10, days_overdue: 0, traffic_density_gmt: 100.0, asset_age_years: 15.0, is_completed: false
     };
-    
     const updatedTasks = [emergencyTask, ...tasks];
     setTasks(updatedTasks);
-    
-    // Instantly trigger the C++ engine
-    handleRunOptimizer(updatedTasks); 
+    handleStreamOptimizer(updatedTasks); // FIX: Now successfully streams the new emergency task
   };
 
-  // Mark Task as Done
   const handleMarkTaskDone = (taskId) => {
-    setTasks(prevTasks => prevTasks.map(t => 
-      t.id === taskId ? { ...t, is_completed: true } : t
-    ));
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, is_completed: true } : t));
   };
 
-  // Data Filters
   const activeTasksForSection = useMemo(() => {
     if (!schedule || !schedule[activeDay]) return [];
     return schedule[activeDay].filter(t => t.section_id === activeSection);
   }, [schedule, activeDay, activeSection]);
+  
 
   const activeBacklogForSection = useMemo(() => {
     return tasks.filter(t => t.section_id === activeSection);
   }, [tasks, activeSection]);
 
-  // Security Gate
-  if (!isAuthenticated) {
-    return <Login onLogin={() => setIsAuthenticated(true)} />;
-  }
+  if (!isAuthenticated) return <Login onLogin={() => setIsAuthenticated(true)} />;
 
-  // Dashboard Render
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
-      
-      {/* Top Utility Bar */}
       <div className="flex justify-end w-full -mb-2">
-        <button 
-          onClick={() => setIsAuthenticated(false)} 
-          className="text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 shadow-sm"
-        >
+        <button onClick={() => setIsAuthenticated(false)} className="text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 shadow-sm">
           <span>Secure Logout</span>
         </button>
       </div>
 
-      <Header 
-        onOptimize={handleRunOptimizer} 
-        loading={loading} 
-        onOpenSettings={() => setIsSettingsOpen(true)} 
-      />
+      <Header onOptimize={() => handleStreamOptimizer()} loading={loading} onOpenSettings={() => setIsSettingsOpen(true)} />
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onReset={handleMasterReset} />
+      <KPIScorecard tasks={tasks} schedule={schedule} timetable={timetable}  />
       
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-        onReset={handleMasterReset} 
-      />
-      
-      {/* KPI Scorecard */}
-      <KPIScorecard tasks={tasks} schedule={schedule} timetable={timetable} />
-      
-     {/* Interactive Controls Row */}
       <div className="flex flex-wrap items-center justify-between bg-slate-800 p-4 rounded-xl border border-slate-700">
-        
         <div className="flex items-center space-x-4 relative z-40">
-          {/* Custom Dropdown */}
           <div className="relative">
-            <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center justify-between w-56 px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm font-semibold text-white hover:bg-slate-750 transition shadow-inner"
-            >
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-blue-400" />
-                <span className="truncate">{activeSection}</span>
-              </div>
+            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center justify-between w-56 px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm font-semibold text-white hover:bg-slate-750 transition shadow-inner">
+              <div className="flex items-center space-x-2"><MapPin className="w-4 h-4 text-blue-400" /><span className="truncate">{activeSection}</span></div>
               <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
-
             {isDropdownOpen && (
               <div className="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
                 {SECTIONS.map(sec => (
-                  <button
-                    key={sec}
-                    onClick={() => {
-                      setActiveSection(sec);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-3 text-sm transition font-medium border-b border-slate-700/50 last:border-0 ${
-                      activeSection === sec 
-                        ? 'bg-blue-600/20 text-blue-400' 
-                        : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                    }`}
-                  >
+                  <button key={sec} onClick={() => { setActiveSection(sec); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-3 text-sm transition font-medium border-b border-slate-700/50 last:border-0 ${activeSection === sec ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}>
                     {sec}
                   </button>
                 ))}
               </div>
             )}
           </div>
-
           <button onClick={injectEmergencyTask} className="px-4 py-2.5 bg-red-600/90 hover:bg-red-500 text-white rounded-lg text-sm font-bold shadow-lg transition shrink-0 flex items-center space-x-2">
             <span>🚨 Inject Emergency</span>
           </button>
@@ -192,8 +152,11 @@ export default function App() {
             </span>
             <input 
               type="range" min="0" max="240" step="5" 
-              value={safetyBufferMins} onChange={(e) => setSafetyBufferMins(parseInt(e.target.value))}
-              className="w-32 accent-blue-500"
+              value={safetyBufferMins} 
+              onChange={(e) => setSafetyBufferMins(parseInt(e.target.value))}
+              onMouseUp={() => handleStreamOptimizer()}
+              onTouchEnd={() => handleStreamOptimizer()}
+              className="w-32 accent-blue-500 cursor-pointer"
             />
           </div>
         </div>
@@ -204,26 +167,22 @@ export default function App() {
           <CalendarHeatmap schedule={schedule} onSelectDay={setActiveDay} activeDay={activeDay} activeSection={activeSection} />
         </div>
         <div className="space-y-4">
-          <FileUpload 
-            title="Upload Maintenance Backlog (.json)" 
-            onUpload={(newData) => setTasks(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
-          />
-          <FileUpload 
-            title="Upload Train Timetable (.json)" 
-            onUpload={(newData) => setTimetable(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
-          />
+          <FileUpload title="Upload Maintenance Backlog (.json)" onUpload={(newData) => setTasks(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} />
+          <FileUpload title="Upload Train Timetable (.json)" onUpload={(newData) => setTimetable(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} />
         </div>
       </div>
       <div className="w-full relative z-0">
+        <CapacityOrderBook 
+          activeTasks={activeTasksForSection} 
+          timetable={timetable} 
+          activeDay={activeDay} 
+          activeSection={activeSection} 
+        />
         <TimelineGantt tasks={activeTasksForSection} totalHrs={24} dayLabel={`Day ${parseInt(activeDay) + 1} - ${activeSection}`} />
       </div>
 
       <div className="grid grid-cols-2 gap-6 relative z-0">
-        <TaskQueueTable 
-          tasks={activeBacklogForSection} 
-          fullSchedule={schedule} 
-          onMarkDone={handleMarkTaskDone} 
-        /> 
+        <TaskQueueTable tasks={activeBacklogForSection} fullSchedule={schedule} onMarkDone={handleMarkTaskDone} /> 
         <TaskQueueTable tasks={activeTasksForSection} isScheduled={true} />
       </div>
     </div>

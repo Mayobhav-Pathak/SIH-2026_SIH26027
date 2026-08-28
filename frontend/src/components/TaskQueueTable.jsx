@@ -1,121 +1,111 @@
 import React from 'react';
-import { Download, AlertCircle, CheckCircle2, CalendarDays } from 'lucide-react';
+import * as ReactWindow from 'react-window';
+import { CheckCircle, Clock } from 'lucide-react';
 
-export default function TaskQueueTable({ tasks = [], isScheduled = false, fullSchedule = null, onMarkDone }) {
+// Attempt to safely extract the component, regardless of how Vite packaged it
+const List = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
+
+export default function TaskQueueTable({ tasks = [], isScheduled = false, onMarkDone }) {
   
-  const exportToCSV = () => {
-    if (!tasks || tasks.length === 0) return;
-    const headers = "Task ID,Department,Duration,Time Window\n";
-    const rows = tasks.map(t => `${t.id},${t.department},${t.duration_hrs || t.duration || t.w}h,${t.time_window || 'Pending'}`).join("\n");
-    const blob = new Blob([headers + rows], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `BDMS_Requisition_Export.csv`;
-    a.click();
+  const RenderRow = ({ index, style }) => {
+    // FAILSAFE 1: If the uploaded JSON has a corrupted or null item, default to an empty object
+    const task = tasks[index] || {}; 
+    
+    return (
+      <div 
+        style={style} 
+        className={`flex items-center px-4 py-3 border-b border-slate-700/50 text-sm hover:bg-slate-700/30 transition-colors ${
+          task.is_completed ? 'opacity-50 grayscale' : ''
+        }`}
+      >
+        <div className="w-1/3 font-mono text-slate-300 font-medium truncate pr-4">
+          {task.task_id || task.id || `T-${index}`}
+        </div>
+        
+        <div className="w-1/4">
+          <span className={`px-2 py-1 rounded-md text-xs font-bold ${
+            task.defect_severity >= 8 ? 'bg-red-900/50 text-red-400' :
+            task.defect_severity >= 5 ? 'bg-orange-900/50 text-orange-400' :
+            'bg-emerald-900/50 text-emerald-400'
+          }`}>
+            Sev: {task.defect_severity || 'N/A'}
+          </span>
+        </div>
+        
+        <div className="w-1/4 flex items-center text-slate-400">
+          <Clock className="w-3 h-3 mr-1" />
+          {task.duration_hrs || task.duration || task.w || 1}h
+        </div>
+        
+        <div className="w-1/6 flex justify-end">
+          {isScheduled ? (
+            <span className="text-[0.65rem] font-semibold text-blue-400 bg-blue-900/30 px-2 py-1 rounded font-mono">
+              {task.time_window || `${task.duration_hrs || task.duration || 1}h allocated`}
+            </span>
+          ) : (
+            <button 
+              onClick={() => onMarkDone && onMarkDone(task.id)}
+              disabled={task.is_completed}
+              className={`p-1.5 rounded-md transition ${
+                task.is_completed 
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed' 
+                  : 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-500 hover:text-white'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    );
   };
 
-  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  // FAILSAFE 2: Verify if Vite actually provided the component
+  const isVirtualizationSupported = typeof List !== 'undefined';
 
   return (
-    <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 relative">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-sm font-semibold text-slate-200">
-          {isScheduled ? "Approved BDMS Schedule" : "Maintenance Backlog"}
-        </h2>
-        {isScheduled && (
-          <button onClick={exportToCSV} className="flex items-center space-x-1 text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded transition">
-            <Download className="w-3 h-3" /> <span>Export CSV</span>
-          </button>
-        )}
-      </div>
+    <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-xl flex flex-col h-[400px]">
       
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-300">
-          <thead className="text-xs text-slate-400 border-b border-slate-700 uppercase">
-            <tr>
-              <th className="pb-3 font-semibold">Task ID</th>
-              <th className="pb-3 font-semibold">Dept</th>
-              <th className="pb-3 font-semibold">Duration</th>
-              {isScheduled ? (
-                <th className="pb-3 font-semibold text-emerald-400">Time Window</th>
-              ) : (
-                <>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold text-right">Action</th>
-                </>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700/50">
-            {safeTasks.length > 0 ? safeTasks.map((task) => {
-              const isCompleted = task.is_completed;
-              let scheduledDay = null;
-              
-              if (fullSchedule && !isCompleted) {
-                for (const [dayIdx, dayTasks] of Object.entries(fullSchedule)) {
-                  if (dayTasks.some(t => t.id === task.id)) {
-                    scheduledDay = parseInt(dayIdx) + 1; 
-                    break;
-                  }
-                }
-              }
+      <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50 rounded-t-xl">
+        <h3 className="font-bold text-white flex items-center">
+          {isScheduled ? 'Scheduled Timeline' : 'Active Backlog'}
+          <span className="ml-3 px-2.5 py-0.5 bg-slate-700 text-blue-400 rounded-full text-xs">
+            {tasks.length}
+          </span>
+        </h3>
+      </div>
 
-              const isEmergency = String(task.id).includes('EMERGENCY');
+      <div className="flex px-4 py-2 bg-slate-800 border-b border-slate-700 text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div className="w-1/3">Task ID</div>
+        <div className="w-1/4">Severity</div>
+        <div className="w-1/4">Duration</div>
+        <div className="w-1/6 text-right">{isScheduled ? 'Assignment' : 'Action'}</div>
+      </div>
 
-              return (
-                <tr key={task.id} className={`transition ${isCompleted ? 'opacity-40 bg-slate-900/50' : 'hover:bg-slate-750'} ${isEmergency && !isCompleted ? 'bg-red-900/20' : ''}`}>
-                  <td className={`py-3 font-medium ${isCompleted ? 'text-slate-500 line-through' : 'text-blue-400'}`}>
-                    {task.id}
-                  </td>
-                  <td className="py-3">{task.department}</td>
-                  <td className="py-3">{task.duration_hrs || task.duration || task.w}h</td>
-                  
-                  {isScheduled ? (
-                    <td className="py-3 font-mono text-emerald-300 bg-emerald-900/10 rounded px-2">
-                      {/* FIX: Mapped exactly to the backend time_window variable */}
-                      {task.time_window || "N/A"}
-                    </td>
-                  ) : (
-                    <>
-                      <td className="py-3">
-                        {isCompleted ? (
-                          <span className="flex items-center text-slate-400 text-xs font-semibold">
-                            <CheckCircle2 className="w-3 h-3 mr-1"/> Done
-                          </span>
-                        ) : scheduledDay ? (
-                          <span className="flex items-center text-emerald-400 text-xs font-semibold">
-                            <CalendarDays className="w-3 h-3 mr-1"/> Day {scheduledDay}
-                          </span>
-                        ) : (
-                          <span className="flex items-center text-amber-400 text-xs font-semibold">
-                            <AlertCircle className="w-3 h-3 mr-1"/> Pending
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right">
-                        {!isCompleted && (
-                          <button 
-                            onClick={() => onMarkDone && onMarkDone(task.id)}
-                            className="text-[10px] uppercase tracking-wider font-bold bg-slate-700 hover:bg-emerald-600 text-slate-300 hover:text-white py-1.5 px-3 rounded transition-colors"
-                          >
-                            Mark Done
-                          </button>
-                        )}
-                      </td>
-                    </>
-                  )}
-                </tr>
-              );
-            }) : (
-              <tr>
-                <td colSpan={isScheduled ? "4" : "5"} className="py-6 text-center text-slate-500 italic">
-                  No tasks available.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex-1 w-full relative overflow-hidden">
+        {tasks.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-sm font-medium">
+            No tasks in queue
+          </div>
+        ) : isVirtualizationSupported ? (
+          // Route A: High-performance virtualization (if bundler succeeds)
+          <List
+            height={300}
+            itemCount={tasks.length}
+            itemSize={50}
+            width="100%"
+            className="scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent"
+          >
+            {RenderRow}
+          </List>
+        ) : (
+          // Route B: Bulletproof native CSS mapping (if bundler fails)
+          <div className="h-[300px] w-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+            {tasks.map((_, index) => (
+              <RenderRow key={index} index={index} style={{ height: '50px' }} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
