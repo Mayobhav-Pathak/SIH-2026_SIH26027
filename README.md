@@ -21,8 +21,8 @@ The architecture is built for high-throughput data ingestion and real-time algor
 ## Tech Stack
 
 *   **Core Engine:** C++17
-*   **Backend API:** Python, FastAPI
-*   **Frontend UI:** React, Tailwind CSS, Lucide Icons
-*   **Deployment:** Docker (Containerized Microservices)
+*   **Backend API:** C++17, WebSockets
+*   **Frontend UI:** React, Vite, Tailwind CSS
+*   **Deployment:** Containerized via Docker with volume mounts ensuring strict dependency management and isolated cross-platform compilation of the C++ binaries.
 
 
