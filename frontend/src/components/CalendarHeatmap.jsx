@@ -1,7 +1,7 @@
 import React from 'react';
 
 export default function CalendarHeatmap({ schedule, onSelectDay, activeDay, activeSection }) {
-  const days = Array.from({ length: 30 }, (_, i) => i);
+  const days = Array.from({ length: 60 }, (_, i) => i+1);
 
   const getHeatmapColor = (taskCount) => {
     if (taskCount === 0) return 'bg-slate-800/80 border-slate-700 text-slate-500 hover:border-slate-600';
@@ -14,7 +14,7 @@ export default function CalendarHeatmap({ schedule, onSelectDay, activeDay, acti
   return (
     <div className="bg-slate-800/90 border border-slate-700/80 p-5 rounded-2xl shadow-xl space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-1">
-        <h2 className="text-sm font-bold text-white tracking-wide uppercase">30-Day Maintenance Horizon</h2>
+        <h2 className="text-sm font-bold text-white tracking-wide uppercase">60-Day Maintenance Horizon</h2>
         <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-slate-300 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-700/60">
           <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span><span>Low</span></span>
           <span className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span><span>Med</span></span>
@@ -25,10 +25,11 @@ export default function CalendarHeatmap({ schedule, onSelectDay, activeDay, acti
 
       <div className="grid grid-cols-7 gap-2.5">
         {days.map(day => {
+          
           const dayKey = day.toString();
-          const dayTasks = schedule && schedule[dayKey] 
-            ? schedule[dayKey].filter(t => !activeSection || t.section_id === activeSection)
-            : [];
+          const dayTasks = schedule && schedule[dayKey]
+  ? schedule[dayKey].filter(t => !activeSection || activeSection === 'NETWORK_OVERVIEW' || t.section_id === activeSection)
+  : [];
           
           const taskCount = dayTasks.length;
           const isSelected = activeDay === dayKey;
@@ -43,7 +44,7 @@ export default function CalendarHeatmap({ schedule, onSelectDay, activeDay, acti
               }`}
             >
               <div className="flex justify-between items-center w-full">
-                <span className="text-xs font-bold font-mono">Day {day + 1}</span>
+                <span className="text-xs font-bold font-mono">Day {day}</span>
                 {taskCount > 8 && (
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                 )}

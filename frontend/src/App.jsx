@@ -23,10 +23,10 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [timetable, setTimetable] = useState([]); 
   const [schedule, setSchedule] = useState(null);
-  const [activeDay, setActiveDay] = useState("0");
+  const [activeDay, setActiveDay] = useState("1");
   const [activeSection, setActiveSection] = useState(SECTIONS[0]);
   const [loading, setLoading] = useState(false);
-  const [safetyBufferMins, setSafetyBufferMins] = useState(60); 
+  const [safetyBufferMins, setSafetyBufferMins] = useState(0); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [executionLogs, setExecutionLogs] = useState([]);
 
@@ -43,7 +43,7 @@ export default function App() {
 
     setLoading(true);
     const emptySchedule = {};
-    for (let i = 0; i <= 31; i++) emptySchedule[i.toString()] = [];
+    for (let i = 0; i <= 60; i++) emptySchedule[i.toString()] = [];
     setSchedule(emptySchedule);
 
     const ws = new WebSocket('ws://localhost:8000/ws/optimize-stream');
@@ -57,7 +57,7 @@ export default function App() {
     };
 
     let liveSchedule = {};
-    for (let i = 0; i <= 31; i++) liveSchedule[i.toString()] = [];
+    for (let i = 0; i <= 60; i++) liveSchedule[i.toString()] = [];
 
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data);
@@ -77,7 +77,8 @@ export default function App() {
         }
       } else if (payload.type === "complete") {
         setLoading(false);
-        setActiveDay("0"); 
+        const firstActiveDay = Object.keys(liveSchedule).find(day => liveSchedule[day].length > 0) || "1";
+        setActiveDay(firstActiveDay);
         ws.close();
       }
     };
@@ -101,18 +102,20 @@ export default function App() {
 
   const activeTasksForSection = useMemo(() => {
     if (!schedule || !schedule[activeDay]) return [];
+    // If Network Overview is selected, return ALL scheduled tasks for that day
+    if (activeSection === 'NETWORK_OVERVIEW') return schedule[activeDay];
     return schedule[activeDay].filter(t => t.section_id === activeSection);
   }, [schedule, activeDay, activeSection]);
   
-
   const activeBacklogForSection = useMemo(() => {
+    // If Network Overview is selected, return the ENTIRE unscheduled backlog
+    if (activeSection === 'NETWORK_OVERVIEW') return tasks;
     return tasks.filter(t => t.section_id === activeSection);
   }, [tasks, activeSection]);
-
   if (!isAuthenticated) return <Login onLogin={() => setIsAuthenticated(true)} />;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
+   <div className="p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex justify-end w-full -mb-2">
         <button onClick={() => setIsAuthenticated(false)} className="text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 shadow-sm">
           <span>Secure Logout</span>
@@ -123,52 +126,82 @@ export default function App() {
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onReset={handleMasterReset} />
       <KPIScorecard tasks={tasks} schedule={schedule} timetable={timetable}  />
       
-      <div className="flex flex-wrap items-center justify-between bg-slate-800 p-4 rounded-xl border border-slate-700">
-        <div className="flex items-center space-x-4 relative z-40">
-          <div className="relative">
-            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center justify-between w-56 px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm font-semibold text-white hover:bg-slate-750 transition shadow-inner">
-              <div className="flex items-center space-x-2"><MapPin className="w-4 h-4 text-blue-400" /><span className="truncate">{activeSection}</span></div>
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+      <div className="flex flex-col gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative z-40">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          
+         
+          <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent space-x-2 w-full xl:max-w-[60%] pb-1">
+            <button 
+              onClick={() => setActiveSection('NETWORK_OVERVIEW')} 
+              className={`shrink-0 px-4 py-2 text-xs font-bold rounded border transition-all duration-200 ${
+                activeSection === 'NETWORK_OVERVIEW' 
+                  ? 'bg-purple-600/20 border-purple-500/50 text-purple-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
+                  : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+              }`}
+            >
+              NETWORK OVERVIEW
             </button>
-            {isDropdownOpen && (
-              <div className="absolute w-full mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
-                {SECTIONS.map(sec => (
-                  <button key={sec} onClick={() => { setActiveSection(sec); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-3 text-sm transition font-medium border-b border-slate-700/50 last:border-0 ${activeSection === sec ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-700 hover:text-white'}`}>
-                    {sec}
-                  </button>
-                ))}
-              </div>
-            )}
+            
+            {SECTIONS.map(sec => (
+              <button 
+                key={sec} 
+                onClick={() => setActiveSection(sec)} 
+                className={`shrink-0 px-4 py-2 text-xs font-bold rounded border transition-all duration-200 ${
+                  activeSection === sec 
+                    ? 'bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
+                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                }`}
+              >
+                {sec}
+              </button>
+            ))}
           </div>
-          <button onClick={injectEmergencyTask} className="px-4 py-2.5 bg-red-600/90 hover:bg-red-500 text-white rounded-lg text-sm font-bold shadow-lg transition shrink-0 flex items-center space-x-2">
-            <span>🚨 Inject Emergency</span>
-          </button>
-        </div>
-        
-        <div className="flex items-center space-x-6 mt-4 md:mt-0 relative z-0">
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-semibold text-slate-300 w-40">
-              Safety Buffer: {Math.floor(safetyBufferMins / 60)}h {(safetyBufferMins % 60).toString().padStart(2, '0')}m
-            </span>
-            <input 
-              type="range" min="0" max="240" step="5" 
-              value={safetyBufferMins} 
-              onChange={(e) => setSafetyBufferMins(parseInt(e.target.value))}
-              onMouseUp={() => handleStreamOptimizer()}
-              onTouchEnd={() => handleStreamOptimizer()}
-              className="w-32 accent-blue-500 cursor-pointer"
-            />
+
+          {/* Right: Action Controls (Safety Buffer & Emergency) */}
+          <div className="flex items-center space-x-4 shrink-0 justify-between xl:justify-end">
+            <div className="flex items-center space-x-3 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700/80">
+              <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">
+                Buffer: {Math.floor(safetyBufferMins / 60)}h {(safetyBufferMins % 60).toString().padStart(2, '0')}m
+              </span>
+              <input 
+                type="range" min="0" max="240" step="5" 
+                value={safetyBufferMins} 
+                onChange={(e) => setSafetyBufferMins(parseInt(e.target.value))}
+                onMouseUp={() => handleStreamOptimizer()}
+                onTouchEnd={() => handleStreamOptimizer()}
+                className="w-24 accent-blue-500 cursor-pointer"
+              />
+            </div>
+            <button onClick={injectEmergencyTask} className="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white rounded-lg text-sm font-bold shadow-[0_0_10px_rgba(220,38,38,0.3)] transition flex items-center space-x-2 border border-red-500">
+              <span>🚨 Emergency</span>
+            </button>
           </div>
-        </div>
+      </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-0">
         <div className="lg:col-span-2 space-y-6">
           <CalendarHeatmap schedule={schedule} onSelectDay={setActiveDay} activeDay={activeDay} activeSection={activeSection} />
         </div>
-        <div className="space-y-4">
-          <FileUpload title="Upload Maintenance Backlog (.json)" onUpload={(newData) => setTasks(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} />
-          <FileUpload title="Upload Train Timetable (.json)" onUpload={(newData) => setTimetable(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} />
+        <div className="space-y-4 relative z-0">
+          <FileUpload 
+            title="Upload Maintenance Backlog (.json)" 
+            hasData={tasks.length > 0}
+            onUpload={(newData) => setTasks(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
+            onClear={() => {
+              setTasks([]);
+              setSchedule(null); // Optional: Clears the schedule if tasks are wiped
+            }}
+          />
+          <FileUpload 
+            title="Upload Train Timetable (.json)" 
+            hasData={timetable.length > 0}
+            onUpload={(newData) => setTimetable(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
+            onClear={() => {
+              setTimetable([]);
+              setSchedule(null); // Optional: Clears the schedule if timetable is wiped
+            }}
+          />
         </div>
       </div>
       <div className="w-full relative z-0">
@@ -178,7 +211,11 @@ export default function App() {
           activeDay={activeDay} 
           activeSection={activeSection} 
         />
-        <TimelineGantt tasks={activeTasksForSection} totalHrs={24} dayLabel={`Day ${parseInt(activeDay) + 1} - ${activeSection}`} />
+        <TimelineGantt 
+  activeTasks={activeTasksForSection} 
+  activeSection={activeSection} 
+  activeDay={activeDay} 
+/>
       </div>
 
       <div className="grid grid-cols-2 gap-6 relative z-0">

@@ -1,45 +1,60 @@
 import React from 'react';
 
-export default function TimelineGantt({ tasks, totalHrs = 24, dayLabel }) {
-  if (!tasks || tasks.length === 0) {
-    return <div className="bg-slate-800 p-5 rounded-2xl text-slate-400 text-sm w-full border border-slate-700">No tasks scheduled for {dayLabel}.</div>;
-  }
+export default function TimelineGantt({ activeTasks = [], activeSection = "NETWORK", activeDay = 1 }) {
+  // 1440 minutes in a standard 24-hour day
+  const TOTAL_MINUTES = 1440;
 
   return (
-    <div className="bg-slate-800 p-5 rounded-2xl space-y-4 border border-slate-700 w-full">
-      <h2 className="text-sm font-semibold text-slate-200">{dayLabel} Allocation Bar</h2>
+    <div className="w-full bg-slate-800/40 rounded-xl border border-slate-700/50 p-4 shadow-lg">
+      <h3 className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-4">
+        Day {parseInt(activeDay || 1) } • {activeSection} Allocation
+      </h3>
       
-      {/* Container is now 100% width, no scrolling */}
-      <div className="w-full h-12 bg-slate-900 rounded-xl relative border border-slate-700 overflow-hidden">
+      {/* Timeline Container */}
+      <div className="relative w-full h-16 bg-slate-900/60 rounded-lg border border-slate-800 overflow-visible shadow-inner">
         
-        {tasks.map(t => {
-           const dur = parseInt(t.duration_hrs || t.duration || t.w || 1);
-           const start = t.start_hour !== undefined ? parseInt(t.start_hour) : 0;
-           const end = t.end_hour !== undefined ? parseInt(t.end_hour) : (start + dur);
-           
-           const leftPercent = (start / totalHrs) * 100;
-           const widthPercent = ((end - start) / totalHrs) * 100;
-           const shortId = t.id.replace('TASK-', '#').replace('EMERGENCY-', '🚨 ');
-           
-           return (
-            <div 
-              key={t.id} 
-              style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }} 
-              className={`absolute top-0 h-full rounded-md text-white flex items-center justify-center text-[11px] font-bold shadow-sm px-1 border-r border-slate-900 ${t.id.includes('EMERGENCY') ? 'bg-red-600' : 'bg-blue-500 hover:bg-blue-400 transition-colors'}`}
-              title={`${t.id} (${start}:00 - ${end}:00)`}
+        {/* Render the Scheduled Task Blocks */}
+        {activeTasks.map((task, index) => {
+          
+          if (task.start_min === undefined || task.end_min === undefined) return null;
+
+          const leftPercent = (task.start_min / TOTAL_MINUTES) * 100;
+          const widthPercent = ((task.end_min - task.start_min) / TOTAL_MINUTES) * 100;
+
+          return (
+            <div
+              key={task.id || task.task_id || index}
+              // Added flex, items-center, px-2, and overflow-hidden here to the main bar
+              className="absolute top-2 bottom-6 rounded bg-blue-500/70 border border-blue-400/50 backdrop-blur-sm shadow-[0_0_12px_rgba(59,130,246,0.4)] hover:bg-blue-400/90 cursor-crosshair transition-all duration-200 group flex items-center px-2 overflow-hidden"
+              style={{
+                left: `${leftPercent}%`,
+                width: `${widthPercent}%`,
+              }}
             >
-              <span className="truncate pointer-events-none">{shortId}</span>
+              {/* Liquid Glass Hover Tooltip */} 
+              <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur text-white text-[10px] px-3 py-1.5 rounded border border-slate-600 whitespace-nowrap transition-opacity pointer-events-none z-10 shadow-xl flex flex-col items-center"> 
+              <span className="font-bold text-blue-300">{task.id || task.task_id}
+                </span> 
+                <span className="text-slate-300 font-mono">{task.time_window || "N/A"}</span>
+                 </div>
+              
+              {/* Task Text (Properly scaled and truncated) */}
+              <span className="text-white text-[10px] font-bold center flex-1 min-w-0 select-none">
+                {String(task.id || task.task_id).replace('TASK-', '')} 
+              </span>
             </div>
-          )
-        })}
-      </div>
-      
-      <div className="flex justify-between text-[10px] text-slate-500 font-mono w-full px-1">
-         <span>00:00</span>
-         <span>06:00</span>
-         <span>12:00</span>
-         <span>18:00</span>
-         <span>24:00</span>
+          );
+        })
+}
+
+        {/* 24-Hour Time Markers */}
+        <div className="absolute inset-0 flex justify-between px-2 text-[10px] text-slate-500 font-mono items-end pb-1 pointer-events-none">
+          <span>00:00</span>
+          <span>06:00</span>
+          <span>12:00</span>
+          <span>18:00</span>
+          <span>24:00</span>
+        </div>
       </div>
     </div>
   );

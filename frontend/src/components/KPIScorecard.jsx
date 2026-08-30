@@ -101,10 +101,10 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }) {
             <Activity className="w-6 h-6 text-blue-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 truncate">Knapsack Efficiency</p>
+            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 ">Knapsack Efficiency</p>
             <div className="flex items-baseline space-x-2 whitespace-nowrap">
               <h2 className="text-3xl font-bold text-white">{metrics.efficiency}%</h2>
-              <span className="text-xs text-blue-400 font-semibold tracking-wide truncate">Packing Density</span>
+              <span className="text-xs text-blue-400 font-semibold tracking-wide ">Packing Density</span>
             </div>
           </div>
         </div>
@@ -118,10 +118,10 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }) {
             <Zap className="w-6 h-6 text-purple-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 truncate">Throughput Allocated</p>
+            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 ">Throughput Allocated</p>
             <div className="flex items-baseline space-x-2 whitespace-nowrap">
               <h2 className="text-3xl font-bold text-white">{metrics.throughputHrs}h</h2>
-              <span className="text-xs text-purple-400 font-semibold tracking-wide truncate">Safe Corridor Time</span>
+              <span className="text-xs text-purple-400 font-semibold tracking-wide ">Safe Corridor Time</span>
             </div>
           </div>
         </div>
@@ -135,10 +135,10 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }) {
             <ShieldAlert className="w-6 h-6 text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 truncate">Severe Defects Cleared</p>
+            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 ">Severe Defects Cleared</p>
             <div className="flex items-baseline space-x-2 whitespace-nowrap">
               <h2 className="text-3xl font-bold text-white">{metrics.completionRate}%</h2>
-              <span className="text-xs text-slate-500 font-semibold tracking-wide truncate">({metrics.completedTasks}/{metrics.totalTasks})</span>
+              <span className="text-xs text-slate-500 font-semibold tracking-wide ">({metrics.completedTasks}/{metrics.totalTasks})</span>
             </div>
           </div>
         </div>

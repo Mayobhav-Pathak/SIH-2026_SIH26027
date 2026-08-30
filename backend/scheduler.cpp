@@ -2,77 +2,127 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <memory>
+#include <queue>
+#include <set>
 #include <unordered_map>
 
 using namespace std;
 
-struct Task { int w; double orig_v; string id; bool scheduled = false; };
-struct Corridor { int day_id; int cap; double freight; };
+struct Task { 
+    string id; 
+    double duration_hrs; 
+    int defect_severity; 
+    int days_overdue; 
+    int duration_mins() const { return static_cast<int>(duration_hrs * 60); }
+};
+
+struct Train { 
+    string id; 
+    int day_id; 
+    int entry_hour; 
+    int exit_hour; 
+    int entry_min() const { return entry_hour * 60; }
+    int exit_min() const { return exit_hour * 60; }
+};
+
+struct TimeGap { 
+    int start_min; 
+    int end_min; 
+    int day_id;
+    int available_mins() const { return end_min - start_min; }
+    bool operator<(const TimeGap& other) const { return available_mins() < other.available_mins(); }
+};
+
+struct AlphaScoreComparator {
+    bool operator()(const Task& a, const Task& b) const {
+        double scoreA = (10.0 * a.defect_severity) + (2.5 * a.days_overdue) + (1.0 / max(0.1, a.duration_hrs));
+        double scoreB = (10.0 * b.defect_severity) + (2.5 * b.days_overdue) + (1.0 / max(0.1, b.duration_hrs));
+        return scoreA < scoreB; 
+    }
+};
 
 int main() {
     ios_base::sync_with_stdio(false); cin.tie(NULL);
     
-    int M, N, safety_buffer_mins = 60;
-    if (!(cin >> M >> N >> safety_buffer_mins)) return 0;
-    double safety_buffer_hrs = safety_buffer_mins / 60.0;
+    int num_trains, num_tasks, safety_buffer_mins;
+    if (!(cin >> num_trains >> num_tasks >> safety_buffer_mins)) return 0;
 
-    unordered_map<string, vector<Corridor>> section_corridors;
-    for (int i = 0; i < M; ++i) {
-        string sec_id; Corridor c;
-        cin >> sec_id >> c.day_id >> c.cap >> c.freight;
-        section_corridors[sec_id].push_back(c);
+    unordered_map<string, vector<Train>> section_trains;
+    for (int i = 0; i < num_trains; ++i) {
+        Train tr; string sec_id;
+        cin >> tr.id >> sec_id >> tr.day_id >> tr.entry_hour >> tr.exit_hour;
+        section_trains[sec_id].push_back(tr);
     }
 
     unordered_map<string, vector<Task>> section_tasks;
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < num_tasks; ++i) {
         Task t; string sec_id;
-        cin >> t.w >> t.orig_v >> t.id >> sec_id;
+        cin >> t.id >> sec_id >> t.duration_hrs >> t.defect_severity >> t.days_overdue;
         section_tasks[sec_id].push_back(t);
     }
 
-    for (auto& [sec_id, corridors] : section_corridors) {
-        auto& tasks = section_tasks[sec_id];
-        int num_tasks = tasks.size();
-        if (num_tasks == 0) continue;
+    for (auto& [sec_id, tasks] : section_tasks) {
+        priority_queue<Task, vector<Task>, AlphaScoreComparator> execution_tape;
+        for (const auto& t : tasks) execution_tape.push(t);
 
-        for (const auto& c : corridors) {
-            int W = static_cast<int>(c.cap - safety_buffer_hrs);
-            if (W < 0) W = 0;
-            double freight_penalty = c.freight * 20.0;
+        auto& trains = section_trains[sec_id];
+
+        for (int day = 1; day <= 60; ++day) {
+            if (execution_tape.empty()) break;
+
+            vector<Train> daily_trains;
+            for (const auto& tr : trains) {
+                if (tr.day_id == day) daily_trains.push_back(tr);
+            }
+
+            sort(daily_trains.begin(), daily_trains.end(), [](const Train& a, const Train& b) {
+                return a.entry_min() < b.entry_min();
+            });
+
+            multiset<TimeGap> safe_gaps;
+            int current_time = 0;
+            const int END_OF_DAY = 1440;
             
-            vector<int> avail;
-            for (int i = 0; i < num_tasks; ++i) {
-                if (!tasks[i].scheduled && tasks[i].w <= W) avail.push_back(i);
+            for (const auto& tr : daily_trains) {
+                int physical_gap = tr.entry_min() - current_time;
+                if (physical_gap > safety_buffer_mins) {
+                    safe_gaps.insert({current_time + (safety_buffer_mins / 2), tr.entry_min() - (safety_buffer_mins / 2), day});
+                }
+                current_time = max(current_time, tr.exit_min());
             }
-            if (avail.empty()) continue;
+            if (END_OF_DAY - current_time > safety_buffer_mins) {
+                safe_gaps.insert({current_time + (safety_buffer_mins / 2), END_OF_DAY - (safety_buffer_mins / 2), day});
+            }
 
-            size_t buf_size = (avail.size() + 1) * (W + 1);
-            auto dp = make_unique<int[]>(buf_size);
-            auto get_idx = [&](int i, int w) { return i * (W + 1) + w; };
+            vector<Task> unmatched;
+            while (!execution_tape.empty() && !safe_gaps.empty()) {
+                Task top_task = execution_tape.top();
+                execution_tape.pop();
 
-            for (size_t i = 1; i <= avail.size(); ++i) {
-                int t_idx = avail[i - 1];
-                int w_i = tasks[t_idx].w;
-                int v_i = max(1, static_cast<int>((tasks[t_idx].orig_v - freight_penalty) * 1000));
+                TimeGap req = {0, top_task.duration_mins(), day};
+                auto it = safe_gaps.lower_bound(req); 
 
-                for (int w = 0; w <= W; ++w) {
-                    if (w_i <= w) dp[get_idx(i, w)] = max(dp[get_idx(i - 1, w)], dp[get_idx(i - 1, w - w_i)] + v_i);
-                    else dp[get_idx(i, w)] = dp[get_idx(i - 1, w)];
+                if (it != safe_gaps.end()) {
+                    TimeGap matched = *it;
+                    safe_gaps.erase(it);
+                    
+                    int task_end_min = matched.start_min + top_task.duration_mins();
+                    
+                    // THIS IS THE CRITICAL LINE THAT PYTHON IS WAITING FOR
+                    cout << top_task.id << ":" << day << ":" << matched.start_min << ":" << task_end_min << " ";
+                    
+                    int leftover = matched.available_mins() - top_task.duration_mins();
+                    if (leftover > 0) {
+                        safe_gaps.insert({matched.start_min + top_task.duration_mins(), matched.end_min, day});
+                    }
+                } else {
+                    unmatched.push_back(top_task);
                 }
             }
-
-            int curr_w = W;
-            for (int i = avail.size(); i > 0; --i) {
-                if (dp[get_idx(i, curr_w)] != dp[get_idx(i - 1, curr_w)]) {
-                    int t_idx = avail[i - 1];
-                    tasks[t_idx].scheduled = true;
-                    curr_w -= tasks[t_idx].w;
-                    cout << tasks[t_idx].id << ":" << c.day_id << " ";
-                }
-            }
+            
+            for (const auto& t : unmatched) execution_tape.push(t);
         }
     }
-
     cout << endl; 
+    return 0;
 }

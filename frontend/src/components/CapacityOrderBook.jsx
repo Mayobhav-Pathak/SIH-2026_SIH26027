@@ -5,9 +5,9 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
   
   // High-speed memoized calculation of capacity vs. usage
   const metrics = useMemo(() => {
-    let totalCapacityHrs = 0;
+    let trainOccupiedHrs = 0;
     
-    // 1. Scan the timetable for available track gaps matching the exact day and section
+    // 1. Scan the timetable for trains matching the exact day and section
     if (timetable && timetable.length > 0) {
       timetable.forEach(corridor => {
         const secId = String(corridor.section_id || corridor.section || "DEFAULT_SEC").replace(/ /g, "_");
@@ -16,10 +16,13 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
         if (secId === activeSection && dId === activeDay) {
           const entry = parseInt(corridor.entry_hour || 0);
           const exit = parseInt(corridor.exit_hour || 1);
-          totalCapacityHrs += Math.max(1, exit - entry);
+          trainOccupiedHrs += Math.max(0, exit - entry);
         }
       });
     }
+    
+    // True capacity is 24 hours MINUS the hours trains are on the track
+    const totalCapacityHrs = Math.max(0, 24 - trainOccupiedHrs);
     
     // 2. Sum up the scheduled task durations
     let usedHrs = 0;
@@ -30,7 +33,7 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
       });
     }
     
-    // 3. Calculate Saturation Percentage (Failsafe against divide-by-zero)
+    // 3. Calculate Saturation Percentage
     const capacity = totalCapacityHrs > 0 ? totalCapacityHrs : 1; 
     const utilPercent = Math.min(100, (usedHrs / capacity) * 100);
     
@@ -59,7 +62,7 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
         <div className="flex items-center space-x-2">
           <Activity className={`w-4 h-4 ${textColor}`} />
           <h4 className="text-[0.65rem] uppercase tracking-widest text-slate-400 font-bold">
-            Order Book Depth • {activeSection} • Day {parseInt(activeDay) + 1}
+            Order Book Depth • {activeSection} • Day {parseInt(activeDay) }
           </h4>
         </div>
         <div className="text-right">

@@ -1,62 +1,64 @@
-import React, { useState } from 'react';
-import { UploadCloud, CheckCircle2 } from 'lucide-react';
+import React, { useRef } from 'react';
+import { UploadCloud, CheckCircle, Trash2 } from 'lucide-react';
 
-export default function FileUpload({ title, onUpload }) {
-  const [uploadCount, setUploadCount] = useState(0);
+export default function FileUpload({ title, onUpload, hasData, onClear }) {
+  const fileInputRef = useRef(null);
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (event) => {
       try {
-        const parsedData = JSON.parse(e.target.result);
-        onUpload(parsedData);
-        setUploadCount(prev => prev + 1); // Increment the file counter
-      } catch (error) {
-        alert("Invalid JSON file. Please ensure it matches the required schema.");
+        const json = JSON.parse(event.target.result);
+        onUpload(json);
+      } catch (err) {
+        alert("Invalid JSON format.");
       }
+      // CRITICAL: Reset the input so you can re-upload the same file after clearing
+      if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
-    
-    // Reset the input value so the same file can be uploaded again if needed
-    event.target.value = null; 
   };
 
   return (
-    <div className={`border border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all duration-300 ${
-      uploadCount > 0 
-        ? 'bg-emerald-900/10 border-emerald-700 hover:bg-emerald-900/20' 
-        : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
+    <div className={`p-6 rounded-xl border border-dashed flex flex-col items-center justify-center transition-all duration-300 ${
+      hasData ? 'bg-emerald-900/10 border-emerald-500/50 shadow-[inset_0_0_15px_rgba(16,185,129,0.05)]' : 'bg-slate-800/50 border-slate-600 hover:border-slate-500 hover:bg-slate-800'
     }`}>
-      
-      {/* Dynamic Icon */}
-      {uploadCount > 0 ? (
-        <CheckCircle2 className="w-8 h-8 text-emerald-400 mb-3" />
+      {hasData ? (
+        <>
+          <CheckCircle className="w-8 h-8 text-emerald-500 mb-3" />
+          <h3 className="text-white text-sm font-bold mb-1">{title}</h3>
+          <p className="text-emerald-400 text-xs mb-4 font-mono">Data Uploaded Successfully</p>
+          <button 
+            onClick={onClear}
+            className="flex items-center space-x-2 px-4 py-2 bg-red-900/40 hover:bg-red-600/80 border border-red-800/50 rounded text-red-200 text-xs font-bold transition-colors"
+          >
+            <Trash2 size={14} />
+            <span>Clear Data</span>
+          </button>
+        </>
       ) : (
-        <UploadCloud className="w-8 h-8 text-blue-400 mb-3" />
+        <>
+          <UploadCloud className="w-8 h-8 text-blue-400 mb-3" />
+          <h3 className="text-white text-sm font-bold mb-1">{title}</h3>
+          <p className="text-slate-400 text-xs mb-4">Ingest mass JSON data instantly</p>
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-bold transition border border-slate-600 shadow-sm"
+          >
+            Browse Files
+          </button>
+          <input 
+            type="file" 
+            accept=".json" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+          />
+        </>
       )}
-      
-      <h3 className="text-sm font-semibold text-slate-200">{title}</h3>
-      
-      {/* Dynamic Text: "Added 1 file" */}
-      {uploadCount > 0 ? (
-        <p className="text-xs text-emerald-400 mt-1 mb-4 font-semibold">
-          Added {uploadCount} file{uploadCount !== 1 ? 's' : ''}
-        </p>
-      ) : (
-        <p className="text-xs text-slate-400 mt-1 mb-4">Ingest mass data instantly</p>
-      )}
-      
-      <label className={`cursor-pointer text-xs font-semibold py-2 px-4 rounded-lg transition ${
-        uploadCount > 0 
-          ? 'bg-emerald-600 hover:bg-emerald-500 text-white' 
-          : 'bg-slate-700 hover:bg-slate-600 text-white'
-      }`}>
-        {uploadCount > 0 ? "Upload Another" : "Browse Files"}
-        <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-      </label>
     </div>
   );
 }

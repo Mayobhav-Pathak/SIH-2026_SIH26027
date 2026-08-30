@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import * as ReactWindow from 'react-window';
 import { CheckCircle, Clock } from 'lucide-react';
 
 // Attempt to safely extract the component, regardless of how Vite packaged it
 const List = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
 
-export default function TaskQueueTable({ tasks = [], isScheduled = false, onMarkDone }) {
-  
+export default function TaskQueueTable({ tasks = [], isScheduled = false, onMarkDone, fullSchedule }) {
+  const scheduledDaysMap = useMemo(() => {
+    const map = {};
+    if (fullSchedule) {
+      Object.entries(fullSchedule).forEach(([dayStr, dayTasks]) => {
+        dayTasks.forEach(t => {
+          map[t.id || t.task_id] = dayStr;
+        });
+      });
+    }
+    return map;
+  }, [fullSchedule]);  
   const RenderRow = ({ index, style }) => {
     // FAILSAFE 1: If the uploaded JSON has a corrupted or null item, default to an empty object
     const task = tasks[index] || {}; 
+    const assignedDay = task.day_id !== undefined ? task.day_id : scheduledDaysMap[task.id || task.task_id];
     
     return (
       <div 
@@ -18,11 +29,18 @@ export default function TaskQueueTable({ tasks = [], isScheduled = false, onMark
           task.is_completed ? 'opacity-50 grayscale' : ''
         }`}
       >
-        <div className="w-1/3 font-mono text-slate-300 font-medium truncate pr-4">
+        {/* Changed to w-3/12 */}
+        <div className="w-3/12 font-mono text-slate-300 font-medium truncate pr-4">
           {task.task_id || task.id || `T-${index}`}
         </div>
         
-        <div className="w-1/4">
+        {/* w-2/12 */}
+        <div className="w-2/12 text-slate-400 truncate pr-2">
+          {task.department || 'N/A'}
+        </div>
+        
+        {/* Changed to w-2/12 from w-1/4 */}
+        <div className="w-2/12">
           <span className={`px-2 py-1 rounded-md text-xs font-bold ${
             task.defect_severity >= 8 ? 'bg-red-900/50 text-red-400' :
             task.defect_severity >= 5 ? 'bg-orange-900/50 text-orange-400' :
@@ -32,12 +50,19 @@ export default function TaskQueueTable({ tasks = [], isScheduled = false, onMark
           </span>
         </div>
         
-        <div className="w-1/4 flex items-center text-slate-400">
+        {/* Changed to w-2/12 from w-1/4 */}
+        <div className="w-2/12 flex items-center text-slate-400">
           <Clock className="w-3 h-3 mr-1" />
           {task.duration_hrs || task.duration || task.w || 1}h
         </div>
         
-        <div className="w-1/6 flex justify-end">
+        {/* w-2/12 */}
+        <div className="w-2/12 text-blue-400 font-semibold text-xs">
+          {assignedDay !== undefined ? `Day ${parseInt(assignedDay) }` : '-'}
+        </div>
+        
+        {/* Changed to w-1/12 from w-1/6 */}
+        <div className="w-1/12 flex justify-end">
           {isScheduled ? (
             <span className="text-[0.65rem] font-semibold text-blue-400 bg-blue-900/30 px-2 py-1 rounded font-mono">
               {task.time_window || `${task.duration_hrs || task.duration || 1}h allocated`}
@@ -76,10 +101,12 @@ export default function TaskQueueTable({ tasks = [], isScheduled = false, onMark
       </div>
 
       <div className="flex px-4 py-2 bg-slate-800 border-b border-slate-700 text-xs font-bold text-slate-400 uppercase tracking-wider">
-        <div className="w-1/3">Task ID</div>
-        <div className="w-1/4">Severity</div>
-        <div className="w-1/4">Duration</div>
-        <div className="w-1/6 text-right">{isScheduled ? 'Assignment' : 'Action'}</div>
+        <div className="w-5/20">Task ID</div>
+        <div className="w-3/20">Dept</div>
+        <div className="w-3/20">Severity</div>
+        <div className="w-4/20">Duration</div>
+        <div className="w-2/20">Day</div>
+        <div className="w-1/20 text-right">{isScheduled ? 'Assignment' : 'Action'}</div>
       </div>
 
       <div className="flex-1 w-full relative overflow-hidden">
