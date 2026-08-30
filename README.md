@@ -1,4 +1,5 @@
 # 🚅 IR-ABPS: High-Frequency Railway Maintenance Execution Engine
+[![Build Verification](https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027/actions/workflows/build-test.yml/badge.svg)](https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027/actions)
 
 [![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
