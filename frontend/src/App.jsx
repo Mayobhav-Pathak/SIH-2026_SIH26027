@@ -11,6 +11,7 @@ import SettingsModal from './components/SettingsModal';
 import CapacityOrderBook from './components/CapacityOrderBook';
 import ExecutionTape from './components/ExecutionTape';
 
+
 const SECTIONS = [
     "DEL-CNB-SEC1", "MUM-PUN-SEC2", "HWH-KGP-SEC3", "MAS-SBC-SEC4", "NDLS-CDG-SEC5",
     "BCT-ADI-SEC6", "SC-BZA-SEC7", "LKO-BSB-SEC8", "JP-JU-SEC9", "PNBE-GAYA-SEC10",
