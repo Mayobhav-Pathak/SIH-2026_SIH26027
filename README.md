@@ -44,7 +44,7 @@ The backend and C++ execution engine are fully containerized. Docker ensures the
 Clone the repository and navigate to the backend directory:
 ```bash
 git clone [https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027.git](https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027.git)
-cd SIH-2026_SIH26027/backend
+cd SIH-2026_SIH26027
 ```
 Build and spin up the Docker container. This will automatically compile scheduler.cpp and start the FastAPI WebSocket server:
 ```bash
