@@ -59,10 +59,10 @@ npm install
 npm start
 ```
 ### Step 3: Execute a Schedule
-1.Open your browser to http://localhost:5173/ (usually)
-2.Upload your timetable.json and backlog.json datasets.
-3.Adjust the Safety Buffer parameters.
-4.Click Execute Schedule to stream the JSON payloads to the C++ engine and watch the Gantt chart render in real-time.
+* 1.Open your browser to http://localhost:5173/ (usually)
+* 2.Upload your timetable.json and backlog.json datasets.
+* 3.Adjust the Safety Buffer parameters.
+* 4.Click Execute Schedule to stream the JSON payloads to the C++ engine and watch the Gantt chart render in real-time.
 ### 📊 Performance Metrics
 * **Time Complexity**: $O(N \log N + N \log G)$
 * **Memory Footprint**: Highly optimized; relies on self-balancing BSTs rather than multi-dimensional DP arrays.
