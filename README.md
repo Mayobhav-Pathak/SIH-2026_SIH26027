@@ -25,7 +25,7 @@ The architecture is built for high-throughput data ingestion and real-time algor
 *   **Frontend UI:** React, Vite, Tailwind CSS
 *   **Deployment:** Containerized via Docker with volume mounts ensuring strict dependency management and isolated cross-platform compilation of the C++ binaries.
 ### Local Deployment (Docker)
-The architecture is containerized for zero-configuration deployment. Compiling the C++ engine from source is heavily optimized; even on standard development hardware like an IdeaPad i5, the build executes in seconds due to the lightweight 1D DP memory footprint.
+The architecture is containerized for zero-configuration deployment. Compiling the C++ engine from source is heavily optimized.
 
 ```bash
 # Clone the repository
