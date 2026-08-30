@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "react-virtualized-auto-sizer": "^2.0.3",
-    "react-window": "^2.3.0"
-  }
-}
