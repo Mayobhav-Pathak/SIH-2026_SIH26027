@@ -43,7 +43,7 @@ The backend and C++ execution engine are fully containerized. Docker ensures the
 ### Step 1: Deploy the Backend (Docker)
 Clone the repository and navigate to the backend directory:
 ```bash
-git clone [https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027.git](https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027.git)
+git clone https://github.com/Mayobhav-Pathak/SIH-2026_SIH26027.git
 cd SIH-2026_SIH26027
 ```
 Build and spin up the Docker container. This will automatically compile scheduler.cpp and start the FastAPI WebSocket server:
@@ -56,7 +56,7 @@ Open a new terminal window, navigate to the frontend directory, and start the Re
 ```bash
 cd ../frontend
 npm install
-npm start
+npm run dev
 ```
 ### Step 3: Execute a Schedule
 * 1.Open your browser to http://localhost:5173/ (usually)
