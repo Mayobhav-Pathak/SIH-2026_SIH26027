@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Train, Lock, User, ShieldCheck } from 'lucide-react';
 
-export default function Login({ onLogin }) {
+type LoginProps = {
+  onLogin: () => void;
+};
+
+export default function Login({ onLogin }: LoginProps) {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Hardcoded credentials for hackathon demonstration
     if (employeeId === 'admin' && password === 'railway123') {
@@ -45,7 +49,7 @@ export default function Login({ onLogin }) {
                   type="text" 
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
-                  placeholder="Enter ID (e.g., admin)"
+                  placeholder="Enter ID"
                   className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
@@ -59,7 +63,7 @@ export default function Login({ onLogin }) {
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter Password (e.g., railway123)"
+                  placeholder="Enter Password"
                   className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>

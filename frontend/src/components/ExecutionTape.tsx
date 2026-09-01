@@ -1,13 +1,24 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, type CSSProperties } from 'react';
+// @ts-ignore
 import * as ReactWindow from 'react-window';
 import { Terminal, Cpu } from 'lucide-react';
+// @ts-ignore
 const List = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
 
 
+// @ts-ignore
 const SafeList = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
 
-export default function ExecutionTape({ logs = [] }) {
-  const listRef = useRef(null);
+type LogEntry = {
+  timestamp?: string;
+  text?: string;
+  tag?: string;
+  type?: 'error' | 'complete' | 'info';
+  [key: string]: any;
+};
+
+export default function ExecutionTape({ logs = [] as LogEntry[] }: { logs?: LogEntry[] }) {
+  const listRef = useRef<any>(null);
 
   // Auto-scroll to the bottom of the feed when new WebSocket tokens stream in
   useEffect(() => {
@@ -16,8 +27,8 @@ export default function ExecutionTape({ logs = [] }) {
     }
   }, [logs.length]);
 
-  const RenderLogItem = ({ index, style }) => {
-    const log = logs[index] || {};
+  const RenderLogItem = ({ index, style }: { index: number; style: CSSProperties }) => {
+    const log: LogEntry = logs[index] || {};
     
     // High-frequency terminal coloring based on execution status
     let statusColor = "text-emerald-400 bg-emerald-950/30 border-emerald-800/40";

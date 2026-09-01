@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { X, Trash2, Cpu, ShieldAlert } from 'lucide-react';
 
-export default function SettingsModal({ isOpen, onClose, onReset }) {
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onReset: () => void;
+}
+
+export default function SettingsModal({ isOpen, onClose, onReset }: SettingsModalProps) {
   const [engine, setEngine] = useState('cpp');
 
   if (!isOpen) return null;

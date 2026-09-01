@@ -1,20 +1,32 @@
-import React, { useRef } from 'react';
+import React, { useRef, type ChangeEvent } from 'react';
 import { UploadCloud, CheckCircle, Trash2 } from 'lucide-react';
 
-export default function FileUpload({ title, onUpload, hasData, onClear }) {
-  const fileInputRef = useRef(null);
+type FileUploadProps = {
+  title: string;
+  onUpload: (data: unknown) => void;
+  hasData: boolean;
+  onClear: () => void;
+};
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+export default function FileUpload({ title, onUpload, hasData, onClear }: FileUploadProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const json = JSON.parse(event.target.result);
+        const result = event.target?.result;
+        if (typeof result !== 'string') {
+          throw new Error('File content is not valid text.');
+        }
+
+        const json = JSON.parse(result);
         onUpload(json);
       } catch (err) {
-        alert("Invalid JSON format.");
+        alert('Invalid JSON format.');
       }
       // CRITICAL: Reset the input so you can re-upload the same file after clearing
       if (fileInputRef.current) fileInputRef.current.value = '';

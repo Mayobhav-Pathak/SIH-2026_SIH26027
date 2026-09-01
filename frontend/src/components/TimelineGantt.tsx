@@ -1,13 +1,28 @@
-import React from 'react';
+type TimelineTask = {
+  id?: string | number;
+  task_id?: string | number;
+  start_min?: number;
+  end_min?: number;
+  time_window?: string;
+  [key: string]: unknown;
+};
 
-export default function TimelineGantt({ activeTasks = [], activeSection = "NETWORK", activeDay = 1 }) {
+export default function TimelineGantt({
+  activeTasks = [],
+  activeSection = "NETWORK",
+  activeDay = 1,
+}: {
+  activeTasks?: TimelineTask[];
+  activeSection?: string;
+  activeDay?: number | string;
+}) {
   // 1440 minutes in a standard 24-hour day
   const TOTAL_MINUTES = 1440;
 
   return (
     <div className="w-full bg-slate-800/40 rounded-xl border border-slate-700/50 p-4 shadow-lg">
       <h3 className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-4">
-        Day {parseInt(activeDay || 1) } • {activeSection} Allocation
+        Day {String(parseInt(String(activeDay || 1), 10))} • {activeSection} Allocation
       </h3>
       
       {/* Timeline Container */}

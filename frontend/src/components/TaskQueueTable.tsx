@@ -1,27 +1,31 @@
 import React, { useMemo } from 'react';
+// @ts-ignore
 import * as ReactWindow from 'react-window';
 import { CheckCircle, Clock } from 'lucide-react';
 
 // Attempt to safely extract the component, regardless of how Vite packaged it
 const List = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
 
-export default function TaskQueueTable({ tasks = [], isScheduled = false, onMarkDone, fullSchedule }) {
-  const scheduledDaysMap = useMemo(() => {
-    const map = {};
+export default function TaskQueueTable({ tasks = [], isScheduled = false, onMarkDone, fullSchedule }: { tasks: any[]; isScheduled: boolean; onMarkDone: (id: string) => void; fullSchedule: any }) {
+  const scheduledDaysMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
     if (fullSchedule) {
-      Object.entries(fullSchedule).forEach(([dayStr, dayTasks]) => {
-        dayTasks.forEach(t => {
-          map[t.id || t.task_id] = dayStr;
+      Object.entries(fullSchedule as Record<string, any[]>).forEach(([dayStr, dayTasks]) => {
+        (dayTasks ?? []).forEach((t: any) => {
+          const taskKey = t?.id ?? t?.task_id;
+          if (taskKey !== undefined && taskKey !== null) {
+            map[String(taskKey)] = dayStr;
+          }
         });
       });
     }
     return map;
-  }, [fullSchedule]);  
-  const RenderRow = ({ index, style }) => {
+  }, [fullSchedule]);
+  const RenderRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     // FAILSAFE 1: If the uploaded JSON has a corrupted or null item, default to an empty object
-    const task = tasks[index] || {}; 
+    const task = tasks[index] || {};
     const assignedDay = task.day_id !== undefined ? task.day_id : scheduledDaysMap[task.id || task.task_id];
-    
+
     return (
       <div 
         style={style} 

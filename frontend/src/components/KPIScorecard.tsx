@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Activity, Zap, ShieldAlert } from 'lucide-react';
 
 // Zero-Dependency SVG Sparkline Engine
-const MicroSparkline = ({ data = [], color = "text-blue-400", width = 70, height = 24 }) => {
+const MicroSparkline = ({ data = [] as number[], color = "text-blue-400", width = 70, height = 24 }) => {
   if (!data || data.length < 2) return <div style={{ width, height }} className="opacity-0 shrink-0" />;
 
   const max = Math.max(...data) || 1;
@@ -30,21 +30,61 @@ const MicroSparkline = ({ data = [], color = "text-blue-400", width = 70, height
   );
 };
 
-export default function KPIScorecard({ tasks = [], schedule, timetable = [] }) {
+type TaskItem = {
+  task_id?: string | number;
+  id?: string | number;
+  duration_hrs?: number | string;
+  duration?: number | string;
+  w?: number | string;
+  defect_severity?: number | string;
+  orig_v?: number | string;
+  is_completed?: boolean;
+  [key: string]: unknown;
+};
+
+type ScheduleDayTask = {
+  task_id?: string | number;
+  id?: string | number;
+  duration_hrs?: number | string;
+  duration?: number | string;
+  w?: number | string;
+  [key: string]: unknown;
+};
+
+type ScheduleMap = Record<string, ScheduleDayTask[]>;
+
+type TimetableEntry = {
+  entry_hour?: number | string;
+  exit_hour?: number | string;
+  [key: string]: unknown;
+};
+
+type KPIScorecardProps = {
+  tasks?: TaskItem[];
+  schedule?: ScheduleMap;
+  timetable?: TimetableEntry[];
+};
+
+export default function KPIScorecard({ tasks = [], schedule, timetable = [] }: KPIScorecardProps) {
   const metrics = useMemo(() => {
-    const scheduledTaskIds = new Set();
+    const scheduledTaskIds = new Set<string>();
     let throughputHrs = 0;
-    let dailyLoad = new Array(32).fill(0); 
+    const dailyLoad: number[] = new Array(32).fill(0);
     
     // 1. Calculate actual task hours assigned by the C++ engine
     if (schedule) {
       Object.keys(schedule).forEach(day => {
         const dayTasks = schedule[day];
-        dayTasks.forEach(t => {
-          scheduledTaskIds.add(String(t.task_id || t.id));
-          throughputHrs += parseInt(t.duration_hrs || t.duration || t.w || 1);
+        if (!Array.isArray(dayTasks)) {
+          return;
+        }
+
+        dayTasks.forEach((t: ScheduleDayTask) => {
+          scheduledTaskIds.add(String(t.task_id ?? t.id ?? ''));
+          throughputHrs += Number(t.duration_hrs ?? t.duration ?? t.w ?? 1);
         });
-        dailyLoad[parseInt(day)] = dayTasks.length;
+
+        dailyLoad[Number(day)] = dayTasks.length;
       });
     }
 
@@ -52,8 +92,8 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }) {
     let totalCapacityHrs = 0;
     if (timetable && timetable.length > 0) {
       timetable.forEach(corridor => {
-        const entry = parseInt(corridor.entry_hour || 0);
-        const exit = parseInt(corridor.exit_hour || 1);
+        const entry = Number(corridor.entry_hour ?? 0);
+        const exit = Number(corridor.exit_hour ?? 1);
         // Ensure minimum 1 hour capacity per valid block
         totalCapacityHrs += Math.max(1, exit - entry);
       });
@@ -69,7 +109,7 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }) {
     let severeTasksCleared = 0;
 
     tasks.forEach(t => {
-      const sev = parseFloat(t.defect_severity || t.orig_v || 0);
+      const sev = Number(t.defect_severity ?? t.orig_v ?? 0);
       if (sev >= 4) {
         totalSevereTasks++;
         if (t.is_completed || scheduledTaskIds.has(String(t.task_id || t.id))) {

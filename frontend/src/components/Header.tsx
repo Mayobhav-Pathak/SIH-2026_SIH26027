@@ -1,8 +1,13 @@
 import React from 'react';
 import { Play, Loader2, Settings } from 'lucide-react';
 
-// NEW: Added onOpenSettings to props
-export default function Header({ onOptimize, loading, onOpenSettings }) {
+type HeaderProps = {
+  onOptimize: () => void;
+  loading: boolean;
+  onOpenSettings: () => void;
+};
+
+export default function Header({ onOptimize, loading, onOpenSettings }: HeaderProps) {
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl relative z-10">
       

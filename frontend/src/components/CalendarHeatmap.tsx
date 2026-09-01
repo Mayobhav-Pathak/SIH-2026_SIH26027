@@ -1,9 +1,22 @@
 import React from 'react';
 
-export default function CalendarHeatmap({ schedule, onSelectDay, activeDay, activeSection }) {
-  const days = Array.from({ length: 60 }, (_, i) => i+1);
+type ScheduleTask = {
+  section_id?: string | null;
+};
 
-  const getHeatmapColor = (taskCount) => {
+type ScheduleMap = Record<string, ScheduleTask[]>;
+
+type CalendarHeatmapProps = {
+  schedule?: ScheduleMap;
+  onSelectDay: (day: string) => void;
+  activeDay?: string;
+  activeSection?: string | null;
+};
+
+export default function CalendarHeatmap({ schedule, onSelectDay, activeDay, activeSection }: CalendarHeatmapProps) {
+  const days = Array.from({ length: 60 }, (_, i) => i + 1);
+
+  const getHeatmapColor = (taskCount: number): string => {
     if (taskCount === 0) return 'bg-slate-800/80 border-slate-700 text-slate-500 hover:border-slate-600';
     if (taskCount <= 3) return 'bg-emerald-950/60 border-emerald-800/80 text-emerald-300 hover:bg-emerald-900/60';
     if (taskCount <= 7) return 'bg-amber-950/70 border-amber-800/80 text-amber-300 hover:bg-amber-900/70';

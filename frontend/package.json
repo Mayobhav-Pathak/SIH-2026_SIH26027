@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --force", 
+    "dev": "vite --force",
     "build": "vite build"
   },
   "dependencies": {
@@ -12,14 +12,15 @@
     "lucide-react": "^1.34.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-virtualized-auto-sizer": "^1.0.24",
     "react-window": "^1.8.10",
-    "react-virtualized-auto-sizer": "^1.0.24"
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^6.1.0",
     "autoprefixer": "^10.5.4",
     "oxlint": "^1.79.0",

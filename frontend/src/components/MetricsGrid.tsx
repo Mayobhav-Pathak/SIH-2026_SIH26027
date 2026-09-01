@@ -1,7 +1,13 @@
-import React from 'react';
 import { Gauge, Clock, Zap, CheckCircle2 } from 'lucide-react';
 
-export default function MetricsGrid({ schedule }) {
+interface Schedule {
+  utilization_rate: string | number;
+  wasted_gap_hrs: number;
+  allocated_window: string | number;
+  scheduled_tasks: any[];
+}
+
+export default function MetricsGrid({ schedule }: { schedule: Schedule | null }) {
   if (!schedule) return null;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

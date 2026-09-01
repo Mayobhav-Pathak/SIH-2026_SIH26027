@@ -1,7 +1,14 @@
 import React, { useMemo } from 'react';
 import { Activity } from 'lucide-react';
 
-export default function CapacityOrderBook({ activeTasks, timetable, activeDay, activeSection }) {
+interface CapacityOrderBookProps {
+  activeTasks: Array<{ duration_hrs?: number; duration?: number; w?: number }>;
+  timetable: Array<{ section_id?: string; section?: string; day_id?: number; entry_hour?: number; exit_hour?: number }>;
+  activeDay: string | number;
+  activeSection: string;
+}
+
+export default function CapacityOrderBook({ activeTasks, timetable, activeDay, activeSection }: CapacityOrderBookProps) {
   
   // High-speed memoized calculation of capacity vs. usage
   const metrics = useMemo(() => {
@@ -14,8 +21,8 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
         const dId = String(corridor.day_id || 0);
         
         if (secId === activeSection && dId === activeDay) {
-          const entry = parseInt(corridor.entry_hour || 0);
-          const exit = parseInt(corridor.exit_hour || 1);
+          const entry = parseInt(String(corridor.entry_hour || 0));
+          const exit = parseInt(String(corridor.exit_hour || 1));
           trainOccupiedHrs += Math.max(0, exit - entry);
         }
       });
@@ -28,7 +35,7 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
     let usedHrs = 0;
     if (activeTasks && activeTasks.length > 0) {
       activeTasks.forEach(task => {
-         const dur = parseInt(task.duration_hrs || task.duration || task.w || 1);
+         const dur = parseInt(String(task.duration_hrs || task.duration || task.w || 1));
          usedHrs += dur;
       });
     }
@@ -62,7 +69,7 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
         <div className="flex items-center space-x-2">
           <Activity className={`w-4 h-4 ${textColor}`} />
           <h4 className="text-[0.65rem] uppercase tracking-widest text-slate-400 font-bold">
-            Order Book Depth • {activeSection} • Day {parseInt(activeDay) }
+            Order Book Depth • {activeSection} • Day {parseInt(String(activeDay))}
           </h4>
         </div>
         <div className="text-right">

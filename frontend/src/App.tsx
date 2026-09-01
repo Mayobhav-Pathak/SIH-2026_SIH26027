@@ -1,16 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { MapPin, ChevronDown } from 'lucide-react';
-import Header from './components/Header';
-import CalendarHeatmap from './components/CalendarHeatmap';
-import TimelineGantt from './components/TimelineGantt';
-import TaskQueueTable from './components/TaskQueueTable';
-import FileUpload from './components/FileUpload';
-import Login from './components/Login';
-import KPIScorecard from './components/KPIScorecard';
-import SettingsModal from './components/SettingsModal';
-import CapacityOrderBook from './components/CapacityOrderBook';
-import ExecutionTape from './components/ExecutionTape';
-
+import Header from './components/Header.js';
+import CalendarHeatmap from './components/CalendarHeatmap.js';
+import TimelineGantt from './components/TimelineGantt.js';
+import TaskQueueTable from './components/TaskQueueTable.js';
+import FileUpload from './components/FileUpload.js';
+import Login from './components/Login.js';
+import KPIScorecard from './components/KPIScorecard.js';
+import SettingsModal from './components/SettingsModal.js';
+import CapacityOrderBook from './components/CapacityOrderBook.js';
+import ExecutionTape from './components/ExecutionTape.js';
 
 const SECTIONS = [
     "DEL-CNB-SEC1", "MUM-PUN-SEC2", "HWH-KGP-SEC3", "MAS-SBC-SEC4", "NDLS-CDG-SEC5",
@@ -18,21 +17,41 @@ const SECTIONS = [
     "NGP-BPQ-SEC11", "GHY-DBRG-SEC12", "BBS-VSKP-SEC13", "TVC-ERS-SEC14", "INDB-UJN-SEC15"
 ];
 
+type Task = {
+  id: string;
+  is_completed?: boolean;
+  duration_hrs?: number;
+  duration?: number;
+  w?: number;
+  section_id?: string;
+  [key: string]: any;
+};
+
+type ScheduleTask = Task;
+
+type Schedule = Record<string, ScheduleTask[]>;
+
+type ExecutionLog = {
+  timestamp: string;
+  text: string;
+  tag: string;
+};
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [tasks, setTasks] = useState([]);
-  const [timetable, setTimetable] = useState([]); 
-  const [schedule, setSchedule] = useState(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [timetable, setTimetable] = useState<any[]>([]); 
+  const [schedule, setSchedule] = useState<Schedule>({});
   const [activeDay, setActiveDay] = useState("1");
-  const [activeSection, setActiveSection] = useState(SECTIONS[0]);
+  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0] ?? 'NETWORK_OVERVIEW');
   const [loading, setLoading] = useState(false);
   const [safetyBufferMins, setSafetyBufferMins] = useState(0); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [executionLogs, setExecutionLogs] = useState([]);
+  const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
 
   const handleMasterReset = () => {
-    setTasks([]); setTimetable([]); setSchedule(null);
+    setTasks([]); setTimetable([]); setSchedule({});
     setIsSettingsOpen(false);
   };
 
@@ -43,7 +62,7 @@ export default function App() {
     }
 
     setLoading(true);
-    const emptySchedule = {};
+    const emptySchedule: Schedule = {};
     for (let i = 0; i <= 60; i++) emptySchedule[i.toString()] = [];
     setSchedule(emptySchedule);
 
@@ -57,15 +76,15 @@ export default function App() {
       }));
     };
 
-    let liveSchedule = {};
+    let liveSchedule: Schedule = {};
     for (let i = 0; i <= 60; i++) liveSchedule[i.toString()] = [];
 
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data);
       if (payload.type === "progress") {
         const enrichedTask = payload.task;
-        if (enrichedTask && enrichedTask.day_id) {
-          liveSchedule[enrichedTask.day_id].push(enrichedTask);
+        if (enrichedTask && enrichedTask.day_id !== undefined && liveSchedule[enrichedTask.day_id]) {
+          liveSchedule[enrichedTask.day_id]?.push(enrichedTask);
           setSchedule({ ...liveSchedule });
           setExecutionLogs(prev => [
             ...prev,
@@ -78,7 +97,9 @@ export default function App() {
         }
       } else if (payload.type === "complete") {
         setLoading(false);
-        const firstActiveDay = Object.keys(liveSchedule).find(day => liveSchedule[day].length > 0) || "1";
+        const firstActiveDay = Object.keys(liveSchedule).find(
+          (day) => (liveSchedule[day] ?? []).length > 0
+        ) ?? "1";
         setActiveDay(firstActiveDay);
         ws.close();
       }
@@ -97,7 +118,7 @@ export default function App() {
     handleStreamOptimizer(updatedTasks); // FIX: Now successfully streams the new emergency task
   };
 
-  const handleMarkTaskDone = (taskId) => {
+  const handleMarkTaskDone = (taskId: string) => {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, is_completed: true } : t));
   };
 
@@ -191,7 +212,7 @@ export default function App() {
             onUpload={(newData) => setTasks(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
             onClear={() => {
               setTasks([]);
-              setSchedule(null); // Optional: Clears the schedule if tasks are wiped
+              setSchedule({}); // Clear the schedule when backlog is wiped
             }}
           />
           <FileUpload 
@@ -200,7 +221,7 @@ export default function App() {
             onUpload={(newData) => setTimetable(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
             onClear={() => {
               setTimetable([]);
-              setSchedule(null); // Optional: Clears the schedule if timetable is wiped
+              setSchedule({}); // Clear the schedule when timetable is wiped
             }}
           />
         </div>
@@ -220,8 +241,8 @@ export default function App() {
       </div>
 
       <div className="grid grid-cols-2 gap-6 relative z-0">
-        <TaskQueueTable tasks={activeBacklogForSection} fullSchedule={schedule} onMarkDone={handleMarkTaskDone} /> 
-        <TaskQueueTable tasks={activeTasksForSection} isScheduled={true} />
+        <TaskQueueTable tasks={activeBacklogForSection as any} fullSchedule={schedule} onMarkDone={handleMarkTaskDone} isScheduled={false} /> 
+        <TaskQueueTable tasks={activeTasksForSection as any} isScheduled={true} onMarkDone={handleMarkTaskDone} fullSchedule={schedule} />
       </div>
     </div>
   );
