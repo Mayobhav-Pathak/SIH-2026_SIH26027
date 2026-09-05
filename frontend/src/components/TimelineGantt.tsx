@@ -20,13 +20,13 @@ export default function TimelineGantt({
   const TOTAL_MINUTES = 1440;
 
   return (
-    <div className="w-full bg-slate-800/40 rounded-xl border border-slate-700/50 p-4 shadow-lg">
-      <h3 className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-4">
+    <div className="w-full bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <h3 className="text-slate-600 text-xs font-bold uppercase tracking-widest mb-4">
         Day {String(parseInt(String(activeDay || 1), 10))} • {activeSection} Allocation
       </h3>
       
       {/* Timeline Container */}
-      <div className="relative w-full h-16 bg-slate-900/60 rounded-lg border border-slate-800 overflow-visible shadow-inner">
+      <div className="relative w-full h-16 bg-slate-50 rounded-lg border border-slate-200 overflow-visible shadow-inner">
         
         {/* Render the Scheduled Task Blocks */}
         {activeTasks.map((task, index) => {
@@ -47,7 +47,7 @@ export default function TimelineGantt({
               }}
             >
               {/* Liquid Glass Hover Tooltip */} 
-              <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur text-white text-[10px] px-3 py-1.5 rounded border border-slate-600 whitespace-nowrap transition-opacity pointer-events-none z-10 shadow-xl flex flex-col items-center"> 
+              <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur text-white text-[10px] px-3 py-1.5 rounded border border-slate-600 whitespace-nowrap transition-opacity pointer-events-none z-10 shadow-xl flex flex-col items-center"> 
               <span className="font-bold text-blue-300">{task.id || task.task_id}
                 </span> 
                 <span className="text-slate-300 font-mono">{task.time_window || "N/A"}</span>

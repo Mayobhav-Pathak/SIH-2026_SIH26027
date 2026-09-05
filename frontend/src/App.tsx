@@ -115,7 +115,7 @@ export default function App() {
     };
     const updatedTasks = [emergencyTask, ...tasks];
     setTasks(updatedTasks);
-    handleStreamOptimizer(updatedTasks); // FIX: Now successfully streams the new emergency task
+    handleStreamOptimizer(updatedTasks); 
   };
 
   const handleMarkTaskDone = (taskId: string) => {
@@ -124,22 +124,21 @@ export default function App() {
 
   const activeTasksForSection = useMemo(() => {
     if (!schedule || !schedule[activeDay]) return [];
-    // If Network Overview is selected, return ALL scheduled tasks for that day
     if (activeSection === 'NETWORK_OVERVIEW') return schedule[activeDay];
     return schedule[activeDay].filter(t => t.section_id === activeSection);
   }, [schedule, activeDay, activeSection]);
   
   const activeBacklogForSection = useMemo(() => {
-    // If Network Overview is selected, return the ENTIRE unscheduled backlog
     if (activeSection === 'NETWORK_OVERVIEW') return tasks;
     return tasks.filter(t => t.section_id === activeSection);
   }, [tasks, activeSection]);
+  
   if (!isAuthenticated) return <Login onLogin={() => setIsAuthenticated(true)} />;
 
   return (
-   <div className="p-8 max-w-6xl mx-auto space-y-6">
+   <div className="p-8 max-w-6xl mx-auto space-y-6 bg-[#f5f7fb] min-h-screen text-slate-800">
       <div className="flex justify-end w-full -mb-2">
-        <button onClick={() => setIsAuthenticated(false)} className="text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg border border-slate-700 shadow-sm">
+        <button onClick={() => setIsAuthenticated(false)} className="text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center space-x-2 bg-white hover:bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
           <span>Secure Logout</span>
         </button>
       </div>
@@ -148,17 +147,16 @@ export default function App() {
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onReset={handleMasterReset} />
       <KPIScorecard tasks={tasks} schedule={schedule} timetable={timetable}  />
       
-      <div className="flex flex-col gap-4 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm relative z-40">
+      <div className="flex flex-col gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative z-40">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           
-         
-          <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent space-x-2 w-full xl:max-w-[60%] pb-1">
+          <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent space-x-2 w-full xl:max-w-[60%] pb-1">
             <button 
               onClick={() => setActiveSection('NETWORK_OVERVIEW')} 
               className={`shrink-0 px-4 py-2 text-xs font-bold rounded border transition-all duration-200 ${
                 activeSection === 'NETWORK_OVERVIEW' 
-                  ? 'bg-purple-600/20 border-purple-500/50 text-purple-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
-                  : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                  ? 'bg-violet-50 border-violet-200 text-violet-700 shadow-sm' 
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-100 hover:border-slate-300'
               }`}
             >
               NETWORK OVERVIEW
@@ -170,8 +168,8 @@ export default function App() {
                 onClick={() => setActiveSection(sec)} 
                 className={`shrink-0 px-4 py-2 text-xs font-bold rounded border transition-all duration-200 ${
                   activeSection === sec 
-                    ? 'bg-blue-600/20 border-blue-500/50 text-blue-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
-                    : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                    ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-100 hover:border-slate-300'
                 }`}
               >
                 {sec}
@@ -181,8 +179,8 @@ export default function App() {
 
           {/* Right: Action Controls (Safety Buffer & Emergency) */}
           <div className="flex items-center space-x-4 shrink-0 justify-between xl:justify-end">
-            <div className="flex items-center space-x-3 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700/80">
-              <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">
+            <div className="flex items-center space-x-3 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+              <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">
                 Buffer: {Math.floor(safetyBufferMins / 60)}h {(safetyBufferMins % 60).toString().padStart(2, '0')}m
               </span>
               <input 
@@ -191,10 +189,10 @@ export default function App() {
                 onChange={(e) => setSafetyBufferMins(parseInt(e.target.value))}
                 onMouseUp={() => handleStreamOptimizer()}
                 onTouchEnd={() => handleStreamOptimizer()}
-                className="w-24 accent-blue-500 cursor-pointer"
+                className="w-24 accent-blue-600 cursor-pointer"
               />
             </div>
-            <button onClick={injectEmergencyTask} className="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white rounded-lg text-sm font-bold shadow-[0_0_10px_rgba(220,38,38,0.3)] transition flex items-center space-x-2 border border-red-500">
+            <button onClick={injectEmergencyTask} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold shadow-sm transition flex items-center space-x-2 border border-red-700">
               <span>🚨 Emergency</span>
             </button>
           </div>
@@ -212,7 +210,7 @@ export default function App() {
             onUpload={(newData) => setTasks(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
             onClear={() => {
               setTasks([]);
-              setSchedule({}); // Clear the schedule when backlog is wiped
+              setSchedule({}); 
             }}
           />
           <FileUpload 
@@ -221,7 +219,7 @@ export default function App() {
             onUpload={(newData) => setTimetable(prev => [...prev, ...(Array.isArray(newData) ? newData : [])])} 
             onClear={() => {
               setTimetable([]);
-              setSchedule({}); // Clear the schedule when timetable is wiped
+              setSchedule({}); 
             }}
           />
         </div>
@@ -234,10 +232,10 @@ export default function App() {
           activeSection={activeSection} 
         />
         <TimelineGantt 
-  activeTasks={activeTasksForSection} 
-  activeSection={activeSection} 
-  activeDay={activeDay} 
-/>
+          activeTasks={activeTasksForSection} 
+          activeSection={activeSection} 
+          activeDay={activeDay} 
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-6 relative z-0">

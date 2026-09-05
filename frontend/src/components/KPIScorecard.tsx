@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Activity, Zap, ShieldAlert } from 'lucide-react';
 
-// Zero-Dependency SVG Sparkline Engine
-const MicroSparkline = ({ data = [] as number[], color = "text-blue-400", width = 70, height = 24 }) => {
+const MicroSparkline = ({ data = [] as number[], color = "text-blue-500", width = 70, height = 24 }) => {
   if (!data || data.length < 2) return <div style={{ width, height }} className="opacity-0 shrink-0" />;
 
   const max = Math.max(...data) || 1;
@@ -24,48 +23,19 @@ const MicroSparkline = ({ data = [] as number[], color = "text-blue-400", width 
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="drop-shadow-md transition-all duration-300"
+        className="drop-shadow-sm transition-all duration-300"
       />
     </svg>
   );
 };
 
-type TaskItem = {
-  task_id?: string | number;
-  id?: string | number;
-  duration_hrs?: number | string;
-  duration?: number | string;
-  w?: number | string;
-  defect_severity?: number | string;
-  orig_v?: number | string;
-  is_completed?: boolean;
-  [key: string]: unknown;
-};
-
-type ScheduleDayTask = {
-  task_id?: string | number;
-  id?: string | number;
-  duration_hrs?: number | string;
-  duration?: number | string;
-  w?: number | string;
-  [key: string]: unknown;
-};
-
+type TaskItem = { task_id?: string | number; id?: string | number; duration_hrs?: number | string; duration?: number | string; w?: number | string; defect_severity?: number | string; orig_v?: number | string; is_completed?: boolean; [key: string]: unknown; };
+type ScheduleDayTask = { task_id?: string | number; id?: string | number; duration_hrs?: number | string; duration?: number | string; w?: number | string; [key: string]: unknown; };
 type ScheduleMap = Record<string, ScheduleDayTask[]>;
+type TimetableEntry = { entry_hour?: number | string; exit_hour?: number | string; [key: string]: unknown; };
+type KPIScorecardProps = { tasks?: TaskItem[]; schedule?: ScheduleMap; timetable?: TimetableEntry[]; };
 
-type TimetableEntry = {
-  entry_hour?: number | string;
-  exit_hour?: number | string;
-  [key: string]: unknown;
-};
-
-type KPIScorecardProps = {
-  tasks?: TaskItem[];
-  schedule?: ScheduleMap;
-  timetable?: TimetableEntry[];
-};
-
-export default function KPIScorecard({ tasks = [], schedule, timetable = [] }: KPIScorecardProps) {
+export default function KPIScorecard({ tasks = [], schedule, timetable = [] }: KPIScorecardProps)  {
   const metrics = useMemo(() => {
     const scheduledTaskIds = new Set<string>();
     let throughputHrs = 0;
@@ -135,16 +105,17 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }: K
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono">
       
       {/* Card 1: Knapsack Efficiency */}
-      <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-xl flex items-center justify-between overflow-hidden">
+      {/* UPDATED: Backgrounds and borders */}
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden">
         <div className="flex items-center space-x-4 min-w-0">
-          <div className="p-3 bg-blue-900/30 rounded-lg border border-blue-800/50 shrink-0">
-            <Activity className="w-6 h-6 text-blue-400" />
+          <div className="p-3 bg-blue-100 rounded-lg border border-blue-200 shrink-0">
+            <Activity className="w-6 h-6 text-blue-600" />
           </div>
           <div className="min-w-0">
-            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 ">Knapsack Efficiency</p>
+            <p className="text-[0.65rem] text-slate-500 font-bold uppercase tracking-widest mb-1 ">Knapsack Efficiency</p>
             <div className="flex items-baseline space-x-2 whitespace-nowrap">
-              <h2 className="text-3xl font-bold text-white">{metrics.efficiency}%</h2>
-              <span className="text-xs text-blue-400 font-semibold tracking-wide ">Packing Density</span>
+              <h2 className="text-3xl font-bold text-slate-800">{metrics.efficiency}%</h2>
+              <span className="text-xs text-blue-600 font-semibold tracking-wide ">Packing Density</span>
             </div>
           </div>
         </div>
@@ -152,16 +123,16 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }: K
       </div>
 
       {/* Card 2: Throughput Allocated */}
-      <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-xl flex items-center justify-between overflow-hidden">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden">
         <div className="flex items-center space-x-4 min-w-0">
-          <div className="p-3 bg-purple-900/30 rounded-lg border border-purple-800/50 shrink-0">
-            <Zap className="w-6 h-6 text-purple-400" />
+          <div className="p-3 bg-purple-100 rounded-lg border border-purple-200 shrink-0">
+            <Zap className="w-6 h-6 text-purple-600" />
           </div>
           <div className="min-w-0">
-            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 ">Throughput Allocated</p>
+            <p className="text-[0.65rem] text-slate-500 font-bold uppercase tracking-widest mb-1 ">Throughput Allocated</p>
             <div className="flex items-baseline space-x-2 whitespace-nowrap">
-              <h2 className="text-3xl font-bold text-white">{metrics.throughputHrs}h</h2>
-              <span className="text-xs text-purple-400 font-semibold tracking-wide ">Safe Corridor Time</span>
+              <h2 className="text-3xl font-bold text-slate-800">{metrics.throughputHrs}h</h2>
+              <span className="text-xs text-purple-600 font-semibold tracking-wide ">Safe Corridor Time</span>
             </div>
           </div>
         </div>
@@ -169,16 +140,16 @@ export default function KPIScorecard({ tasks = [], schedule, timetable = [] }: K
       </div>
 
       {/* Card 3: Defect Clearance */}
-      <div className="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-xl flex items-center justify-between overflow-hidden">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between overflow-hidden">
         <div className="flex items-center space-x-4 min-w-0">
-          <div className="p-3 bg-emerald-900/30 rounded-lg border border-emerald-800/50 shrink-0">
-            <ShieldAlert className="w-6 h-6 text-emerald-400" />
+          <div className="p-3 bg-emerald-100 rounded-lg border border-emerald-200 shrink-0">
+            <ShieldAlert className="w-6 h-6 text-emerald-600" />
           </div>
           <div className="min-w-0">
-            <p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-widest mb-1 ">Severe Defects Cleared</p>
+            <p className="text-[0.65rem] text-slate-500 font-bold uppercase tracking-widest mb-1 ">Severe Defects Cleared</p>
             <div className="flex items-baseline space-x-2 whitespace-nowrap">
-              <h2 className="text-3xl font-bold text-white">{metrics.completionRate}%</h2>
-              <span className="text-xs text-slate-500 font-semibold tracking-wide ">({metrics.completedTasks}/{metrics.totalTasks})</span>
+              <h2 className="text-3xl font-bold text-slate-800">{metrics.completionRate}%</h2>
+              <span className="text-xs text-slate-600 font-semibold tracking-wide ">({metrics.completedTasks}/{metrics.totalTasks})</span>
             </div>
           </div>
         </div>

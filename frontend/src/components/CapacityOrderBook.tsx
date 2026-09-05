@@ -53,22 +53,22 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
 
   // Dynamic HFT styling based on network saturation
   let barColor = "bg-blue-500";
-  let textColor = "text-blue-400";
+  let textColor = "text-blue-600";
   
   if (metrics.percent > 100) { 
     barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"; 
-    textColor = "text-red-400"; 
+    textColor = "text-red-600"; 
   } else if (metrics.percent >= 90) { 
     barColor = "bg-orange-500"; 
-    textColor = "text-orange-400"; 
+    textColor = "text-orange-600"; 
   }
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-4 shadow-xl font-mono">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 shadow-sm font-mono">
       <div className="flex justify-between items-end mb-2">
         <div className="flex items-center space-x-2">
           <Activity className={`w-4 h-4 ${textColor}`} />
-          <h4 className="text-[0.65rem] uppercase tracking-widest text-slate-400 font-bold">
+          <h4 className="text-[0.65rem] uppercase tracking-widest text-slate-500 font-bold">
             Order Book Depth • {activeSection} • Day {parseInt(String(activeDay))}
           </h4>
         </div>
@@ -83,7 +83,7 @@ export default function CapacityOrderBook({ activeTasks, timetable, activeDay, a
       </div>
       
       {/* The Background Track */}
-      <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-700/50 relative">
+      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200 relative">
         {/* The Liquid Fill */}
         <div 
           className={`absolute top-0 left-0 bottom-0 transition-all duration-700 ease-out ${barColor}`} 

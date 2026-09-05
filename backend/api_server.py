@@ -7,7 +7,6 @@ import os
 import json
 import re
 
-
 app = FastAPI(title="IR-ABPS Gateway")
 
 app.add_middleware(

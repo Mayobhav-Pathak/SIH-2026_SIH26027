@@ -13,15 +13,15 @@ export default function SettingsModal({ isOpen, onClose, onReset }: SettingsModa
   if (!isOpen) return null;
 
   return (
-   <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+   <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/25 backdrop-blur-sm p-4">
+      <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
         
-        <div className="flex justify-between items-center bg-slate-800 p-5 border-b border-slate-700">
-          <h2 className="text-lg font-bold text-white flex items-center space-x-2">
+        <div className="flex justify-between items-center bg-slate-50 p-5 border-b border-slate-200">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center space-x-2">
             <Cpu className="w-5 h-5 text-blue-400" />
             <span>System Configuration</span>
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-800 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -29,17 +29,17 @@ export default function SettingsModal({ isOpen, onClose, onReset }: SettingsModa
         <div className="p-6 space-y-6">
           {/* Optimization Engine Toggle */}
           <div className="space-y-3">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Solver Engine</label>
-            <div className="flex p-1 bg-slate-950 rounded-lg border border-slate-700">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Solver Engine</label>
+            <div className="flex p-1 bg-slate-50 rounded-lg border border-slate-200">
               <button 
                 onClick={() => setEngine('cpp')}
-                className={`flex-1 py-2 text-sm font-bold rounded-md transition ${engine === 'cpp' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex-1 py-2 text-sm font-bold rounded-md transition ${engine === 'cpp' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 C++ DP (Flat-Buffer)
               </button>
               <button 
                 onClick={() => setEngine('python')}
-                className={`flex-1 py-2 text-sm font-bold rounded-md transition ${engine === 'python' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex-1 py-2 text-sm font-bold rounded-md transition ${engine === 'python' ? 'bg-slate-700 text-white shadow' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Python Heuristic
               </button>
@@ -49,7 +49,7 @@ export default function SettingsModal({ isOpen, onClose, onReset }: SettingsModa
             </p>
           </div>
 
-          <hr className="border-slate-700/50" />
+          <hr className="border-slate-200" />
 
           {/* Master Reset */}
           <div className="space-y-3">

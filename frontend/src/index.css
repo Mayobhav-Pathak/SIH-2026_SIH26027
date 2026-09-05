@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 body {
-      background-color: #020617;
-      color: #cbd5e1;
+      background-color: #f5f7fb;
+      color: #1e293b;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Calm, accessible foundation for the dashboard's existing layout. */
+button, input {
+  font: inherit;
 }
